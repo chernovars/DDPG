@@ -4,7 +4,7 @@ import random
 class ReplayBuffer(object):
 
     def __init__(self, buffer_size):
-        self.buffer_size = buffer_size
+        self.max_size = buffer_size
         self.num_experiences = 0
         self.buffer = deque()
 
@@ -13,11 +13,11 @@ class ReplayBuffer(object):
         return random.sample(self.buffer, batch_size)
 
     def size(self):
-        return self.buffer_size
+        return self.max_size
 
     def add(self, state, action, reward, new_state, done):
         experience = (state, action, reward, new_state, done)
-        if self.num_experiences < self.buffer_size:
+        if self.num_experiences < self.max_size:
             self.buffer.append(experience)
             self.num_experiences += 1
         else:
@@ -25,8 +25,6 @@ class ReplayBuffer(object):
             self.buffer.append(experience)
 
     def count(self):
-        # if buffer is full, return buffer size
-        # otherwise, return experience counter
         return self.num_experiences
 
     def erase(self):

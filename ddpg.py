@@ -1,7 +1,7 @@
 # -----------------------------------
 # Deep Deterministic Policy Gradient
-# Author: Flood Sung
-# Date: 2016.5.4
+# Author: Flood Sung, Arseniy Chernov
+# Date: 2017.11.29
 # -----------------------------------
 import gym
 import tensorflow as tf
