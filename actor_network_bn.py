@@ -4,19 +4,20 @@ import numpy as np
 import math
 
 # Hyper Parameters
-LAYER1_SIZE = 400
-LAYER2_SIZE = 300
-LEARNING_RATE = 1e-4
-TAU = 0.001
+LAYER1_SIZE = 100
+LAYER2_SIZE = 40
+LEARNING_RATE = 1e-3
+TAU = 0.008
 BATCH_SIZE = 64
 
 
 class ActorNetwork:
     """docstring for ActorNetwork"""
-    def __init__(self, sess, state_dim, action_dim):
+    def __init__(self, sess, state_dim, action_dim, env_name):
         self.sess = sess
         self.state_dim = state_dim
         self.action_dim = action_dim
+        self.env_name = env_name
         # create actor network
         self.state_input, self.action_output, self.net, self.is_training = self.create_network(state_dim, action_dim)
 
@@ -31,7 +32,7 @@ class ActorNetwork:
 
         self.update_target()
 
-    # self.load_network()
+        self.load_network()
 
     def create_training_method(self):
         self.q_gradient_input = tf.placeholder("float", [None, self.action_dim])
@@ -128,17 +129,19 @@ class ActorNetwork:
                                                             scope=scope_bn, decay=0.9, epsilon=1e-5))
 
 
-'''
-	def load_network(self):
-		self.saver = tf.train.Saver()
-		checkpoint = tf.train.get_checkpoint_state("saved_actor_networks")
-		if checkpoint and checkpoint.model_checkpoint_path:
-			self.saver.restore(self.sess, checkpoint.model_checkpoint_path)
-			print "Successfully loaded:", checkpoint.model_checkpoint_path
-		else:
-			print "Could not find old network weights"
-	def save_network(self,time_step):
-		print 'save actor-network...',time_step
-		self.saver.save(self.sess, 'saved_actor_networks/' + 'actor-network', global_step = time_step)
 
-'''
+    def load_network(self):
+        self.saver = tf.train.Saver()
+        checkpoint = tf.train.get_checkpoint_state("experiments/" + self.env_name + "/saved_actor_networks")
+        if checkpoint and checkpoint.model_checkpoint_path:
+            self.saver.restore(self.sess, checkpoint.model_checkpoint_path)
+            print("Successfully loaded:", checkpoint.model_checkpoint_path)
+        else:
+            print("Could not find old network weights")
+
+    def save_network(self,time_step):
+        print('save actor-network...',time_step)
+        path = "experiments/" + self.env_name + "/saved_actor_networks/"
+        self.saver.save(self.sess, path, global_step = time_step)
+
+

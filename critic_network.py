@@ -1,20 +1,22 @@
 import tensorflow as tf
 import numpy as np
 import math
+import os, errno
 
-LAYER1_SIZE = 400
-LAYER2_SIZE = 300
-LEARNING_RATE = 1e-3
-TAU = 0.001
+LAYER1_SIZE = 100
+LAYER2_SIZE = 40
+LEARNING_RATE = 1e-4
+TAU = 0.008
 L2 = 0.01
 
 
 class CriticNetwork:
     """docstring for CriticNetwork"""
 
-    def __init__(self, sess, state_dim, action_dim):
+    def __init__(self, sess, state_dim, action_dim, env_name):
         self.time_step = 0
         self.sess = sess
+        self.env_name = env_name
         # create q network
         self.state_input, \
         self.action_input, \
@@ -33,6 +35,8 @@ class CriticNetwork:
         self.sess.run(tf.initialize_all_variables())
 
         self.update_target()
+
+        self.load_network()
 
     def create_training_method(self):
         # Define training optimizer
@@ -110,18 +114,17 @@ class CriticNetwork:
     def variable(self, shape, f):
         return tf.Variable(tf.random_uniform(shape, -1 / math.sqrt(f), 1 / math.sqrt(f)))
 
+    def load_network(self):
+        self.saver = tf.train.Saver()
 
-'''
-	def load_network(self):
-		self.saver = tf.train.Saver()
-		checkpoint = tf.train.get_checkpoint_state("saved_critic_networks")
-		if checkpoint and checkpoint.model_checkpoint_path:
-			self.saver.restore(self.sess, checkpoint.model_checkpoint_path)
-			print "Successfully loaded:", checkpoint.model_checkpoint_path
-		else:
-			print "Could not find old network weights"
+        checkpoint = tf.train.get_checkpoint_state("experiments/" + self.env_name + "/saved_critic_networks")
+        if checkpoint and checkpoint.model_checkpoint_path:
+            self.saver.restore(self.sess, checkpoint.model_checkpoint_path)
+            print("Successfully loaded:", checkpoint.model_checkpoint_path)
+        else:
+            print("Could not find old network weights")
 
-	def save_network(self,time_step):
-		print 'save critic-network...',time_step
-		self.saver.save(self.sess, 'saved_critic_networks/' + 'critic-network', global_step = time_step)
-'''
+    def save_network(self, time_step):
+        print('save critic-network...', time_step)
+        path = "experiments/" + self.env_name + "/saved_critic_networks/"
+        self.saver.save(self.sess, path, global_step=time_step)

@@ -30,7 +30,7 @@ class ActorNetwork:
 
         self.update_target()
 
-    # self.load_network()
+        self.load_network()
 
     def create_training_method(self):
         self.q_gradient_input = tf.placeholder("float", [None, self.action_dim])
@@ -96,18 +96,14 @@ class ActorNetwork:
     def variable(self, shape, f):
         return tf.Variable(tf.random_uniform(shape, -1 / math.sqrt(f), 1 / math.sqrt(f)))
 
-
-'''
 	def load_network(self):
 		self.saver = tf.train.Saver()
 		checkpoint = tf.train.get_checkpoint_state("saved_actor_networks")
 		if checkpoint and checkpoint.model_checkpoint_path:
 			self.saver.restore(self.sess, checkpoint.model_checkpoint_path)
-			print "Successfully loaded:", checkpoint.model_checkpoint_path
+			print("Successfully loaded:", checkpoint.model_checkpoint_path)
 		else:
-			print "Could not find old network weights"
+			print("Could not find old network weights")
 	def save_network(self,time_step):
-		print 'save actor-network...',time_step
+		print('save actor-network...',time_step)
 		self.saver.save(self.sess, 'saved_actor_networks/' + 'actor-network', global_step = time_step)
-
-'''

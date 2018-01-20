@@ -10,7 +10,7 @@ from ou_noise import OUNoise
 from critic_network import CriticNetwork 
 from actor_network_bn import ActorNetwork
 from replay_buffer import ReplayBuffer
-
+import time
 # Hyper Parameters:
 
 REPLAY_BUFFER_SIZE = 1000000
@@ -19,29 +19,38 @@ BATCH_SIZE = 64
 GAMMA = 0.99
 
 
+# Debug Parameters:
+
+SAVE_STEP_THRESHOLD = 3000
+
+
 class DDPG:
     """docstring for DDPG"""
-    def __init__(self, env):
+    def __init__(self, env, train, noise, env_name):
+        self.TRAIN = train
         self.name = 'DDPG' # name for uploading results
+        self.env_name = env_name
         self.environment = env
+        self.NOISE = noise
         # Randomly initialize actor network and critic network
         # with both their target networks
-        self.state_dim = env.observation_space.shape[0]
-        self.action_dim = env.action_space.shape[0]
-
+        self.state_dim = env.observation_space.shape[0] #17
+        self.action_dim = env.action_space.shape[0] #6
+        self.time_step = 1
         self.sess = tf.InteractiveSession()
 
-        self.actor_network = ActorNetwork(self.sess,self.state_dim,self.action_dim)
-        self.critic_network = CriticNetwork(self.sess,self.state_dim,self.action_dim)
+        self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, env_name=self.env_name)
+        self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, env_name=self.env_name)
         
         # initialize replay buffer
-        self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE)
+        self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE, load=True, env_name=self.env_name)
 
         # Initialize a random process the Ornstein-Uhlenbeck process for action exploration
         self.exploration_noise = OUNoise(self.action_dim)
 
     def train(self):
-        #print "train step",self.time_step
+        #print("train step",self.time_step)
+        self.time_step += 1
         # Sample a random minibatch of N transitions from replay buffer
         minibatch = self.replay_buffer.get_batch(BATCH_SIZE)
         state_batch = np.asarray([data[0] for data in minibatch])
@@ -51,18 +60,18 @@ class DDPG:
         done_batch = np.asarray([data[4] for data in minibatch])
 
         # for action_dim = 1
-        action_batch = np.resize(action_batch,[BATCH_SIZE,self.action_dim])
+        #action_batch = np.resize(action_batch,[BATCH_SIZE,self.action_dim])
 
         # Calculate y_batch
         
         next_action_batch = self.actor_network.target_actions(next_state_batch)
-        q_value_batch = self.critic_network.target_q(next_state_batch,next_action_batch)
+        q_target_batch = self.critic_network.target_q(next_state_batch,next_action_batch)
         y_batch = []  
         for i in range(len(minibatch)): 
             if done_batch[i]:
                 y_batch.append(reward_batch[i])
             else :
-                y_batch.append(reward_batch[i] + GAMMA * q_value_batch[i])
+                y_batch.append(reward_batch[i] + GAMMA * q_target_batch[i])
         y_batch = np.resize(y_batch,[BATCH_SIZE,1])
         # Update critic by minimizing the loss L
         self.critic_network.train(y_batch,state_batch,action_batch)
@@ -92,17 +101,24 @@ class DDPG:
 
         # Store transitions to replay start size then start training
         if self.replay_buffer.count() >  REPLAY_START_SIZE:
-            self.train()
-
-        #if self.time_step % 10000 == 0:
-            #self.actor_network.save_network(self.time_step)
-            #self.critic_network.save_network(self.time_step)
-
+            #print("That's why it is slow!!!!")
+            #time1= time.time()
+            if self.TRAIN == True:
+                self.train()
+            #print("Training took ",time.time()-time1)
+        '''if self.time_step % SAVE_STEP_THRESHOLD == 0:
+            self.actor_network.save_network(self.time_step)
+            self.critic_network.save_network(self.time_step)
+'''
         # Re-iniitialize the random process when an episode ends
         if done:
             self.exploration_noise.reset()
 
 
+    def save(self, episode_number):
+        self.actor_network.save_network(episode_number)
+        self.critic_network.save_network(episode_number)
+        self.replay_buffer.save_buffer();
 
 
 

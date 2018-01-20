@@ -1,12 +1,24 @@
 from collections import deque
 import random
+import pickle
 
 class ReplayBuffer(object):
 
-    def __init__(self, buffer_size):
+    def __init__(self, buffer_size, env_name, load=False):
+        self.env_name = env_name
         self.max_size = buffer_size
         self.num_experiences = 0
-        self.buffer = deque()
+        if not load:
+            self.buffer = deque()
+        else:
+            try:
+                with open("./experiments/"+env_name+"/buffer_replay.txt", "rb") as fp:  # Unpickling
+                    print("Loading buffer_replay from saved file")
+                    self.buffer = pickle.load(fp)
+
+            except Exception as error:
+                print("Exception ", error, " happened during buffer_replay load. Creating new buffer.")
+                self.buffer = deque()
 
     def get_batch(self, batch_size):
         # Randomly sample batch_size examples
@@ -30,3 +42,8 @@ class ReplayBuffer(object):
     def erase(self):
         self.buffer = deque()
         self.num_experiences = 0
+
+    def save_buffer(self):
+        with open("./experiments/"+self.env_name+"/buffer_replay.txt", "wb") as fp:  # Pickling
+            print("save buffer_replay...")
+            pickle.dump(self.buffer, fp)
