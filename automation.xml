@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<tasks>
+    <task>
+        <env name="InvertedPendulum">
+            <net role="actor" hlayers="2" bn="True" learning_rate ="0.001" tau="0.008" batch="64">
+                <layer num="1">100</layer>
+                <layer num="2">40</layer>
+            </net>
+            <net role="critic" hlayers="2" bn="False" learning_rate ="0.0001" tau="0.008" l2="0.01">
+                <layer num="1">100</layer>
+                <layer num="2">40</layer>
+            </net>
+            <end critetia="Solved"/>
+        </env>
+        <env name="DoubleInvertedPendulum">
+            <net role="actor" hlayers="2" bn="True" learning_rate ="0.001" tau="0.008" batch="64">
+                <layer num="1">100</layer>
+                <layer num="2">40</layer>
+            </net>
+            <net role="critic" hlayers="2" bn="False" learning_rate ="0.0001" tau="0.008" l2="0.01">
+                <layer num="1">100</layer>
+                <layer num="2">40</layer>
+            </net>
+            <end critetia="Reward"/>
+        </env>
+        <env name="DoubleInvertedPendulum">
+            <net role="actor" hlayers="2" bn="True" learning_rate ="0.001" tau="0.008" batch="64">
+                <layer num="1">100</layer>
+                <layer num="2">40</layer>
+            </net>
+            <net role="critic" hlayers="2" bn="False" learning_rate ="0.0001" tau="0.008" l2="0.01">
+                <layer num="1">100</layer>
+                <layer num="2">40</layer>
+            </net>
+            <end critetia="Reward"/>
+        </env>
+    </task>
+</tasks>
