@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <tasks>
-    <task>
+    <task type="simulation">
         <env name="InvertedPendulum">
             <net role="actor" hlayers="2" bn="True" learning_rate ="0.001" tau="0.008" batch="64">
                 <layer num="1">100</layer>

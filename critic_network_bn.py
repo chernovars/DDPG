@@ -3,17 +3,16 @@ import tensorflow as tf
 import numpy as np
 import math
 
-LAYER1_SIZE = 400
-LAYER2_SIZE = 300
-LEARNING_RATE = 1e-3
-TAU = 0.001
-L2 = 0.01
-
-
 class CriticNetwork:
     """docstring for CriticNetwork"""
 
-    def __init__(self, sess, state_dim, action_dim):
+    def __init__(self, sess, state_dim, action_dim, env_name, critic_settings):
+        self.LAYER1_SIZE = 400
+        self.LAYER2_SIZE = 300
+        self.LEARNING_RATE = float(critic_settings["learning_rate"]) #1e-3
+        self.TAU = float(critic_settings["tau"]) #0.001
+        self.L2 = float(critic_settings["l2"]) #0.01
+
         self.time_step = 0
         self.sess = sess
         # create q network
@@ -42,13 +41,13 @@ class CriticNetwork:
         self.y_input = tf.placeholder("float", [None, 1])
         weight_decay = tf.add_n([L2 * tf.nn.l2_loss(var) for var in self.net])
         self.cost = tf.reduce_mean(tf.square(self.y_input - self.q_value_output)) + weight_decay
-        self.optimizer = tf.train.AdamOptimizer(LEARNING_RATE).minimize(self.cost)
+        self.optimizer = tf.train.AdamOptimizer(self.LEARNING_RATE).minimize(self.cost)
         self.action_gradients = tf.gradients(self.q_value_output, self.action_input)
 
     def create_q_network(self, state_dim, action_dim):
         # the layer size could be changed
-        layer1_size = LAYER1_SIZE
-        layer2_size = LAYER2_SIZE
+        layer1_size = self.LAYER1_SIZE
+        layer2_size = self.LAYER2_SIZE
 
         state_input = tf.placeholder("float", [None, state_dim])
         action_input = tf.placeholder("float", [None, action_dim])
@@ -76,7 +75,7 @@ class CriticNetwork:
         action_input = tf.placeholder("float", [None, action_dim])
         is_training = tf.placeholder(tf.bool)
 
-        ema = tf.train.ExponentialMovingAverage(decay=1 - TAU)
+        ema = tf.train.ExponentialMovingAverage(decay=1 - self.TAU)
         target_update = ema.apply(net)
         target_net = [ema.average(x) for x in net]
         layer0_bn = self.batch_norm_layer(state_input, training_phase=is_training, scope_bn='target_q_batch_norm_0',
@@ -143,6 +142,10 @@ class CriticNetwork:
         else:
             print("Could not find old network weights")
 
-    def save_network(self,time_step):
-        print('save critic-network...',time_step)
-        self.saver.save(self.sess, 'saved_critic_networks/' + 'critic-network', global_step = time_step)
+    def save_network(self, time_step, save_folder):
+        print('saving critic-net...', time_step)
+        if save_folder is None:
+            path = "experiments/" + self.env_name + "/saved_critic_networks/"
+            self.saver.save(self.sess, path, global_step=time_step)
+        else:
+            self.saver.save(self.sess, save_folder + '/saved_critic_networks/', global_step=time_step)

@@ -7,8 +7,6 @@ import gym
 import tensorflow as tf
 import numpy as np
 from ou_noise import OUNoise
-from critic_network import CriticNetwork 
-from actor_network_bn import ActorNetwork
 from replay_buffer import ReplayBuffer
 import time
 # Hyper Parameters:
@@ -26,7 +24,7 @@ SAVE_STEP_THRESHOLD = 3000
 
 class DDPG:
     """docstring for DDPG"""
-    def __init__(self, env, train, noise, env_name):
+    def __init__(self, env, train, noise, env_name, actor_settings, critic_settings):
         self.TRAIN = train
         self.name = 'DDPG' # name for uploading results
         self.env_name = env_name
@@ -39,8 +37,18 @@ class DDPG:
         self.time_step = 1
         self.sess = tf.InteractiveSession()
 
-        self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, env_name=self.env_name)
-        self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, env_name=self.env_name)
+        if actor_settings["bn"] == 'True':
+            from actor_network_bn import ActorNetwork
+        else:
+            from actor_network import ActorNetwork
+
+        if critic_settings["bn"] == 'True':
+            from critic_network_bn import CriticNetwork
+        else:
+            from critic_network import CriticNetwork
+
+        self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, actor_settings)
+        self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, critic_settings)
         
         # initialize replay buffer
         self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE, load=True, env_name=self.env_name)
@@ -114,11 +122,14 @@ class DDPG:
         if done:
             self.exploration_noise.reset()
 
+    def save(self, episode_number, save_folder):
+        self.actor_network.save_network(episode_number, save_folder)
+        self.critic_network.save_network(episode_number, save_folder)
+        self.replay_buffer.save_buffer(save_folder)
 
-    def save(self, episode_number):
-        self.actor_network.save_network(episode_number)
-        self.critic_network.save_network(episode_number)
-        self.replay_buffer.save_buffer();
+    def close(self):
+        tf.reset_default_graph()
+        self.sess.close()
 
 
 

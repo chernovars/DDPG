@@ -3,17 +3,18 @@ from tensorflow.contrib.layers.python.layers import batch_norm as batch_norm
 import numpy as np
 import math
 
-# Hyper Parameters
-LAYER1_SIZE = 100
-LAYER2_SIZE = 40
-LEARNING_RATE = 1e-3
-TAU = 0.008
-BATCH_SIZE = 64
 
 
 class ActorNetwork:
     """docstring for ActorNetwork"""
-    def __init__(self, sess, state_dim, action_dim, env_name):
+    def __init__(self, sess, state_dim, action_dim, env_name, actor_settings):
+        # Hyper Parameters
+        self.LAYER1_SIZE = 100
+        self.LAYER2_SIZE = 40
+        self.LEARNING_RATE = float(actor_settings["learning_rate"])#1e-3
+        self.TAU = float(actor_settings["tau"])#0.008
+        self.BATCH_SIZE = int(actor_settings["batch"])#64
+
         self.sess = sess
         self.state_dim = state_dim
         self.action_dim = action_dim
@@ -37,11 +38,11 @@ class ActorNetwork:
     def create_training_method(self):
         self.q_gradient_input = tf.placeholder("float", [None, self.action_dim])
         self.parameters_gradients = tf.gradients(self.action_output, self.net, -self.q_gradient_input)
-        self.optimizer = tf.train.AdamOptimizer(LEARNING_RATE).apply_gradients(zip(self.parameters_gradients, self.net))
+        self.optimizer = tf.train.AdamOptimizer(self.LEARNING_RATE).apply_gradients(zip(self.parameters_gradients, self.net))
 
     def create_network(self, state_dim, action_dim):
-        layer1_size = LAYER1_SIZE
-        layer2_size = LAYER2_SIZE
+        layer1_size = self.LAYER1_SIZE
+        layer2_size = self.LAYER2_SIZE
 
         state_input = tf.placeholder("float", [None, state_dim])
         is_training = tf.placeholder(tf.bool)
@@ -69,7 +70,7 @@ class ActorNetwork:
     def create_target_network(self, state_dim, action_dim, net):
         state_input = tf.placeholder("float", [None, state_dim])
         is_training = tf.placeholder(tf.bool)
-        ema = tf.train.ExponentialMovingAverage(decay=1 - TAU)
+        ema = tf.train.ExponentialMovingAverage(decay=1 - self.TAU)
         target_update = ema.apply(net)
         target_net = [ema.average(x) for x in net]
 
@@ -139,9 +140,12 @@ class ActorNetwork:
         else:
             print("Could not find old network weights")
 
-    def save_network(self,time_step):
-        print('save actor-network...',time_step)
-        path = "experiments/" + self.env_name + "/saved_actor_networks/"
-        self.saver.save(self.sess, path, global_step = time_step)
+    def save_network(self, time_step, save_folder):
+        print('saving actor-net...', time_step)
+        if save_folder is None:
+            path = "experiments/" + self.env_name + "/saved_actor_networks/"
+            self.saver.save(self.sess, path, global_step=time_step)
+        else:
+            self.saver.save(self.sess, save_folder + '/saved_actor_networks/', global_step=time_step)
 
 

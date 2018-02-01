@@ -43,7 +43,13 @@ class ReplayBuffer(object):
         self.buffer = deque()
         self.num_experiences = 0
 
-    def save_buffer(self):
-        with open("./experiments/"+self.env_name+"/buffer_replay.txt", "wb") as fp:  # Pickling
+    def save_buffer(self, save_folder=None):
+        path = ""
+        if save_folder is None:
+            path = "./experiments/"+self.env_name+"/buffer_replay.txt"
+        else:
+            path = save_folder + "/buffer_replay.txt"
+
+        with open(path, "wb") as fp:  # Pickling
             print("save buffer_replay...")
             pickle.dump(self.buffer, fp)
