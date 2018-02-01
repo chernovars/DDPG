@@ -3,6 +3,7 @@ import os
 import datetime
 import xml.etree.ElementTree as ET
 import main
+import shutil
 
 gc.enable()
 
@@ -10,10 +11,13 @@ def scenario(_scenario):
     cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
     save_folder = "./experiments/"+_scenario+"_"+cur_time
     os.makedirs(save_folder, exist_ok=True)
+
+
     _scenario = _scenario + ".xml"
     if not os.path.isfile("./" + _scenario):
         print("Create and fill file xml scenario file.")
     else:
+
         tree = ET.parse(_scenario)
         root = tree.getroot()
         i = 0
@@ -21,6 +25,7 @@ def scenario(_scenario):
             i = i+1
             t_folder = save_folder + "/Task" + str(i)
             os.makedirs(t_folder, exist_ok=True)
+            shutil.copy("./" + _scenario, save_folder)
             task(t, t_folder)
 
 def task(_task, save_folder):

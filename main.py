@@ -59,9 +59,9 @@ class World:
         self.EPISODES = 100000000  # 100000
         self.TIME_LIMIT = 0
         self.TEST = 10
-        self.RENDER_STEP = RENDER_delay
+        self.RENDER_STEP = RENDER_STEP
         self.RENDER_TEST_EPISODE = False
-        self.RENDER_delay = 0  # 0.1
+        self.RENDER_delay = RENDER_delay  # 0.1
         self.TRAIN = TRAIN
         self.NOISE = NOISE
         self.TEST_ON_EPISODE = 500
@@ -78,6 +78,10 @@ class World:
 
     def main(self, save_folder):
         #myplot = plot.Plot() # TODO: real-time plotting for state analysys
+
+        start_time = 0
+        if self.TIME_LIMIT > 0:
+            start_time = time.time()
 
         env_real = filter_env.makeFilteredEnv(gym.make(self.ENV_NAME))
         agent = DDPG(env_real, self.TRAIN, self.NOISE, self.ENV_NAME, self.ACTOR_SETTINGS, self.CRITIC_SETTINGS)
@@ -121,10 +125,13 @@ class World:
                         break
 
                 # Testing:
-                if episode % self.TEST_ON_EPISODE == 0 and episode > 1:
+                if (episode % self.TEST_ON_EPISODE == 0 and episode > 1):
                     if agent.TRAIN:
                         agent.save(episode, save_folder)
                         self._testing(env, agent, episode, data_collector, self.ENV_NAME)
+                if self.TIME_LIMIT > 0 and (time.time() - start_time) > self.TIME_LIMIT:
+                    agent.save(episode, save_folder)
+                    break
             agent.close()
 
         except KeyboardInterrupt:
