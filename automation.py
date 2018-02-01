@@ -21,12 +21,18 @@ def scenario(_scenario):
         tree = ET.parse(_scenario)
         root = tree.getroot()
         i = 0
+        with open(save_folder + '/status.txt', 'w') as the_file:
+            the_file.write('Executing scenario\n')
         for t in root:
             i = i+1
             t_folder = save_folder + "/Task" + str(i)
             os.makedirs(t_folder, exist_ok=True)
             shutil.copy("./" + _scenario, save_folder)
             task(t, t_folder)
+            with open(save_folder + '/status.txt', 'a') as the_file:
+                the_file.write(str(i)+'\n')
+        with open(save_folder + '/status.txt', 'a') as the_file:
+            the_file.write('Finished\n')
 
 def task(_task, save_folder):
     rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=True, NOISE=True)
@@ -55,8 +61,11 @@ def task(_task, save_folder):
             rl_world.UNTIL_SOLVED = True
             rl_world.AVG_REWARD = int(el_end_criteria[0].text)
             rl_world.OVER_LAST = int(el_end_criteria[1].text)
-
-        rl_world.main(save_folder)
+        try:
+            rl_world.main(save_folder)
+        except Exception as e:
+            with open(save_folder + '/exception.txt', 'a') as the_file:
+                the_file.write('Exception '+str(e)+'\n')
 
 if __name__ == '__main__':
     scenario("scenario1")
