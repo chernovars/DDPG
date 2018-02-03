@@ -4,20 +4,18 @@ import datetime
 import xml.etree.ElementTree as ET
 import main
 import shutil
-
+import sys
 gc.enable()
 
 def scenario(_scenario):
-    cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
-    save_folder = "./experiments/"+_scenario+"_"+cur_time
+    cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) # before scenario becomes scenario.xml
+    save_folder = "./experiments/" + _scenario + "_" + cur_time
     os.makedirs(save_folder, exist_ok=True)
-
 
     _scenario = _scenario + ".xml"
     if not os.path.isfile("./" + _scenario):
         print("Create and fill file xml scenario file.")
     else:
-
         tree = ET.parse(_scenario)
         root = tree.getroot()
         i = 0
@@ -49,7 +47,13 @@ def task(_task, save_folder):
         el_critic = _task[0][1]
         el_end_criteria = _task[0][2]
         rl_world.ACTOR_SETTINGS = el_actor.attrib
+        rl_world.ACTOR_SETTINGS["layers"] = []
+        for child in el_actor:
+            rl_world.ACTOR_SETTINGS["layers"].append(int(child.text))
         rl_world.CRITIC_SETTINGS = el_critic.attrib
+        rl_world.CRITIC_SETTINGS["layers"] = []
+        for child in el_critic:
+            rl_world.CRITIC_SETTINGS["layers"].append(int(child.text))
 
         end_criteria = el_end_criteria.attrib["criteria"]
         if end_criteria == "episodes":
@@ -68,4 +72,4 @@ def task(_task, save_folder):
                 the_file.write('Exception '+str(e)+'\n')
 
 if __name__ == '__main__':
-    scenario("scenario1")
+    scenario(str(sys.argv[1]))

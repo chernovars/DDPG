@@ -7,8 +7,13 @@ class CriticNetwork:
     """docstring for CriticNetwork"""
 
     def __init__(self, sess, state_dim, action_dim, env_name, critic_settings):
-        self.LAYER1_SIZE = 400
-        self.LAYER2_SIZE = 300
+        if len(critic_settings["layers"]) == 2:
+            self.LAYER1_SIZE = critic_settings["layers"][0]
+            self.LAYER2_SIZE = critic_settings["layers"][1]
+        else:
+            self.LAYER1_SIZE = 100
+            self.LAYER2_SIZE = 40
+
         self.LEARNING_RATE = float(critic_settings["learning_rate"]) #1e-3
         self.TAU = float(critic_settings["tau"]) #0.001
         self.L2 = float(critic_settings["l2"]) #0.01

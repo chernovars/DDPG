@@ -9,8 +9,12 @@ class ActorNetwork:
     """docstring for ActorNetwork"""
     def __init__(self, sess, state_dim, action_dim, env_name, actor_settings):
         # Hyper Parameters
-        self.LAYER1_SIZE = 100
-        self.LAYER2_SIZE = 40
+        if len(actor_settings["layers"]) == 2:
+            self.LAYER1_SIZE = actor_settings["layers"][0]
+            self.LAYER2_SIZE = actor_settings["layers"][1]
+        else:
+            self.LAYER1_SIZE = 100
+            self.LAYER2_SIZE = 40
         self.LEARNING_RATE = float(actor_settings["learning_rate"])#1e-3
         self.TAU = float(actor_settings["tau"])#0.008
         self.BATCH_SIZE = int(actor_settings["batch"])#64
