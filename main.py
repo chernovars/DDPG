@@ -40,7 +40,7 @@ class DataCollector:
         self.EMA_reward = 0.5 * episode_reward + 0.95 * self.EMA_reward
         self.EMA_rewards_list.append(self.EMA_reward)
         self.time_point_first = self.time_point_last
-        if self.UNTIL_SOLVED:
+        if self.UNTIL_SOLVED and len(self.rewardslist) > 100:
             last_rewards = self.rewardslist[-self.OVER_LAST:]
             if (sum(last_rewards) / len(last_rewards)) > self.AVG_REWARD:
                 self.solved = True
@@ -84,7 +84,7 @@ class World:
             start_time = time.time()
 
         env_real = filter_env.makeFilteredEnv(gym.make(self.ENV_NAME))
-        agent = DDPG(env_real, self.TRAIN, self.NOISE, self.ENV_NAME, self.ACTOR_SETTINGS, self.CRITIC_SETTINGS)
+        agent = DDPG(env_real, self.TRAIN, self.NOISE, self.ENV_NAME, self.ACTOR_SETTINGS, self.CRITIC_SETTINGS, save_folder)
 
         if self.RECORD_VIDEO:
             monitor = gym.wrappers.Monitor(env_real, 'experiments/' + self.ENV_NAME, (lambda i: (i % self.VIDEO_ON_EPISODE) == 0), resume=True)

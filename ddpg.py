@@ -24,7 +24,7 @@ SAVE_STEP_THRESHOLD = 3000
 
 class DDPG:
     """docstring for DDPG"""
-    def __init__(self, env, train, noise, env_name, actor_settings, critic_settings):
+    def __init__(self, env, train, noise, env_name, actor_settings, critic_settings, save_folder):
         self.TRAIN = train
         self.name = 'DDPG' # name for uploading results
         self.env_name = env_name
@@ -47,8 +47,8 @@ class DDPG:
         else:
             from critic_network import CriticNetwork
 
-        self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, actor_settings)
-        self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, critic_settings)
+        self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, actor_settings, save_folder)
+        self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, critic_settings, save_folder)
         
         # initialize replay buffer
         self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE, load=True, env_name=self.env_name)

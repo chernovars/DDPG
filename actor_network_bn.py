@@ -7,7 +7,7 @@ import math
 
 class ActorNetwork:
     """docstring for ActorNetwork"""
-    def __init__(self, sess, state_dim, action_dim, env_name, actor_settings):
+    def __init__(self, sess, state_dim, action_dim, env_name, actor_settings, save_folder):
         # Hyper Parameters
         if len(actor_settings["layers"]) == 2:
             self.LAYER1_SIZE = actor_settings["layers"][0]
@@ -23,6 +23,7 @@ class ActorNetwork:
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.env_name = env_name
+        self.save_folder = save_folder
         # create actor network
         self.state_input, self.action_output, self.net, self.is_training = self.create_network(state_dim, action_dim)
 
@@ -135,21 +136,27 @@ class ActorNetwork:
 
 
 
-    def load_network(self):
+    def load_network(self, save_folder=None):
         self.saver = tf.train.Saver()
-        checkpoint = tf.train.get_checkpoint_state("experiments/" + self.env_name + "/saved_actor_networks")
+        path = self._get_path(save_folder)
+        checkpoint = tf.train.get_checkpoint_state(path)
         if checkpoint and checkpoint.model_checkpoint_path:
             self.saver.restore(self.sess, checkpoint.model_checkpoint_path)
             print("Successfully loaded:", checkpoint.model_checkpoint_path)
         else:
             print("Could not find old network weights")
 
-    def save_network(self, time_step, save_folder):
+    def save_network(self, time_step, save_folder=None):
         print('saving actor-net...', time_step)
-        if save_folder is None:
-            path = "experiments/" + self.env_name + "/saved_actor_networks/"
-            self.saver.save(self.sess, path, global_step=time_step)
-        else:
-            self.saver.save(self.sess, save_folder + '/saved_actor_networks/', global_step=time_step)
+        path = self._get_path(save_folder)
+        self.saver.save(self.sess, path, global_step=time_step)
 
+    def _get_path(self, save_folder):
+        if save_folder is not None:
+            path = save_folder + '/saved_actor_networks/'
+        elif self.save_folder is not None:
+            path = self.save_folder + '/saved_actor_networks/'
+        else:
+            path = "experiments/" + self.env_name + "/saved_actor_networks/"
+        return path
 

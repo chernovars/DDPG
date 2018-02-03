@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import main
 import shutil
 import sys
+import time
 gc.enable()
 
 def scenario(_scenario):
@@ -26,15 +27,16 @@ def scenario(_scenario):
             t_folder = save_folder + "/Task" + str(i)
             os.makedirs(t_folder, exist_ok=True)
             shutil.copy("./" + _scenario, save_folder)
+            start_time = time.time()
             task(t, t_folder)
+            time_took = (time.time() - start_time) / 60
             with open(save_folder + '/status.txt', 'a') as the_file:
-                the_file.write(str(i)+'\n')
+                the_file.write(str(i)+ " " + str(time_took) + ' m\n')
         with open(save_folder + '/status.txt', 'a') as the_file:
             the_file.write('Finished\n')
 
 def task(_task, save_folder):
     rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=True, NOISE=True)
-
     if _task.attrib["type"] == "simulation":
         os.makedirs(save_folder + "/saved_actor_networks", exist_ok=True)
         os.makedirs(save_folder + "/saved_critic_networks", exist_ok=True)
@@ -68,6 +70,7 @@ def task(_task, save_folder):
         try:
             rl_world.main(save_folder)
         except Exception as e:
+            print(e)
             with open(save_folder + '/exception.txt', 'a') as the_file:
                 the_file.write('Exception '+str(e)+'\n')
 
