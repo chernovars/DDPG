@@ -4,18 +4,21 @@ import pickle
 
 class ReplayBuffer(object):
 
-    def __init__(self, buffer_size, env_name, load=False):
+    def __init__(self, buffer_size, env_name, load=False, save_folder=None):
         self.env_name = env_name
         self.max_size = buffer_size
         self.num_experiences = 0
+        if save_folder is not None:
+            path = save_folder + "/buffer_replay.txt"
+        else:
+            path = "./experiments/"+env_name+"/buffer_replay.txt"
         if not load:
             self.buffer = deque()
         else:
             try:
-                with open("./experiments/"+env_name+"/buffer_replay.txt", "rb") as fp:  # Unpickling
+                with open(path, "rb") as fp:  # Unpickling
                     print("Loading buffer_replay from saved file")
                     self.buffer = pickle.load(fp)
-
             except Exception as error:
                 print("Exception ", error, " happened during buffer_replay load. Creating new buffer.")
                 self.buffer = deque()

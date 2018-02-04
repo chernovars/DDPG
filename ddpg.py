@@ -51,7 +51,7 @@ class DDPG:
         self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, critic_settings, save_folder)
         
         # initialize replay buffer
-        self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE, load=True, env_name=self.env_name)
+        self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE, load=True, env_name=self.env_name, save_folder=save_folder)
 
         # Initialize a random process the Ornstein-Uhlenbeck process for action exploration
         self.exploration_noise = OUNoise(self.action_dim)
