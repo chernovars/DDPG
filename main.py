@@ -64,7 +64,7 @@ class World:
         self.RENDER_delay = RENDER_delay  # 0.1
         self.TRAIN = TRAIN
         self.NOISE = NOISE
-        self.TEST_ON_EPISODE = 500
+        self.TEST_ON_EPISODE = 200
         self.VIDEO_ON_EPISODE = 20000  # 4*TEST_ON_EPISODE
         self.SHOW_PLOT = False
         self.RECORD_VIDEO = False
@@ -125,12 +125,17 @@ class World:
                         break
 
                 # Testing:
-                if (episode % self.TEST_ON_EPISODE == 0 and episode > 1):
+                if (episode % self.TEST_ON_EPISODE == 0 ): #and episode > 400
                     if agent.TRAIN:
-                        agent.save(episode, save_folder)
-                        self._testing(env, agent, episode, data_collector, self.ENV_NAME)
+                        #agent.save(episode, save_folder)
+                        if self._testing(env, agent, episode, data_collector, self.ENV_NAME):
+                            agent.save(episode, save_folder)
+                            data_collector.save_report(self.ENV_NAME)
+                            data_collector.solved = True
+                            break
                 if self.TIME_LIMIT > 0 and (time.time() - start_time) > self.TIME_LIMIT:
                     agent.save(episode, save_folder)
+                    data_collector.save_report(self.ENV_NAME)
                     break
             agent.close()
 
@@ -193,6 +198,23 @@ class World:
                     break
         ave_reward = total_reward / self.TEST
         print('episode: ', episode, 'Evaluation Average Reward:', ave_reward)
+        if self.UNTIL_SOLVED and ave_reward > self.AVG_REWARD:
+            total_reward = 0
+            for i in range(self.OVER_LAST):
+                state = env.reset()
+                for j in range(env.spec.timestep_limit):
+                    action = agent.action(state)  # direct action for test
+                    state, reward, done, _ = env.step(action)
+                    total_reward += reward
+                    if done:
+                        break
+            ave_reward = total_reward / self.OVER_LAST
+            print('episode: ', episode, 'Evaluation Average Reward 2:', ave_reward)
+            if ave_reward > self.AVG_REWARD:
+                return True
+        return False
+
+
 
 if __name__ == '__main__':
     w = World
