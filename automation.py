@@ -1,4 +1,5 @@
 import gc
+import argparse
 import os
 import datetime
 import xml.etree.ElementTree as ET
@@ -8,10 +9,11 @@ import sys
 import time
 gc.enable()
 
-def scenario(_scenario):
+def scenario(_scenario, cont=""):
     cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) # before scenario becomes scenario.xml
     save_folder = "./experiments/" + _scenario + "_" + cur_time
     os.makedirs(save_folder, exist_ok=True)
+
 
     _scenario = _scenario + ".xml"
     if not os.path.isfile("./" + _scenario):
@@ -22,6 +24,8 @@ def scenario(_scenario):
         i = 0
         with open(save_folder + '/status.txt', 'w') as the_file:
             the_file.write('Executing scenario\n')
+        if cont:
+            copy_folders("./experiments/" + cont, save_folder, "Task")
         for t in root:
             i = i+1
             t_folder = save_folder + "/Task" + str(i)
@@ -43,7 +47,7 @@ def task(_task, save_folder):
 
         rl_world.ENV_NAME = _task[0].attrib["name"]
         rl_world.TEST = 10
-        rl_world.TEST_ON_EPISODE = 500
+        rl_world.TEST_ON_EPISODE = 200
 
         el_actor = _task[0][0]
         el_critic = _task[0][1]
@@ -74,5 +78,29 @@ def task(_task, save_folder):
             with open(save_folder + '/exception.txt', 'a') as the_file:
                 the_file.write('Exception '+str(e)+'\n')
 
+def copy_folders(src, dst, beginning_of_name):
+    for f in os.listdir(src + "/"):
+        if f.startswith(beginning_of_name) and os.path.isdir(src + "/" + f):
+            shutil.copytree(src + "/" + f, dst + "/" + f)
+#def read_file_to_list:
+
+
 if __name__ == '__main__':
-    scenario(str(sys.argv[1]))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("scenario", type=str,
+                        help="scenario to execute")
+    parser.add_argument("-c", "--cont", type=str,
+                        help="execute scenario using weights from old scenario c")
+    args = parser.parse_args()
+
+
+    if args.cont:
+        if os.path.exists("./experiments/" + args.cont):
+            scenario(args.scenario, cont=args.cont)
+        else:
+            print("Source directory does not exist. Aborting...")
+            exit(1)
+
+    else:
+        scenario(args.scenario)
+        pass
