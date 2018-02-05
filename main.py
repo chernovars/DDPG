@@ -14,7 +14,7 @@ import shutil
 
 
 class DataCollector:
-    def __init__(self, save_folder, UNTIL_SOLVED, OVER_LAST, AVG_REWARD):
+    def __init__(self, save_folder):
         self.time_point_first = time.time()
         self.time_point_last = time.time()
         self.timelist = []
@@ -23,9 +23,6 @@ class DataCollector:
         self.EMA_reward = 0
         self.EMA_rewards_list = []
         self.save_folder = save_folder
-        self.UNTIL_SOLVED = UNTIL_SOLVED
-        self.OVER_LAST = OVER_LAST
-        self.AVG_REWARD = AVG_REWARD
 
         self.solved = False
 
@@ -40,10 +37,6 @@ class DataCollector:
         self.EMA_reward = 0.5 * episode_reward + 0.95 * self.EMA_reward
         self.EMA_rewards_list.append(self.EMA_reward)
         self.time_point_first = self.time_point_last
-        if self.UNTIL_SOLVED and len(self.rewardslist) > 100:
-            last_rewards = self.rewardslist[-self.OVER_LAST:]
-            if (sum(last_rewards) / len(last_rewards)) > self.AVG_REWARD:
-                self.solved = True
 
     def save_report(self, name):
         with open(self.save_folder + name, "w") as output:
@@ -91,7 +84,7 @@ class World:
             env = monitor
         else:
             env = env_real
-        data_collector = DataCollector(save_folder, self.UNTIL_SOLVED, self.OVER_LAST, self.AVG_REWARD)
+        data_collector = DataCollector(save_folder)
 
         try:
             for episode in range(self.EPISODES):
@@ -116,33 +109,30 @@ class World:
                     state = next_state
                     if done:
                         data_collector._collect_data(steps, episode_reward)
-                        if self.UNTIL_SOLVED and data_collector.solved:
-                            self.UNTIL_SOLVED = False
-                            data_collector.save_report(self.ENV_NAME)
-                            self._testing(env, agent, episode, data_collector, self.ENV_NAME)
-                            agent.close()
-                            return
                         break
-
                 # Testing:
-                if (episode % self.TEST_ON_EPISODE == 0 ): #and episode > 400
+                if (episode % self.TEST_ON_EPISODE) == 0 and episode > 100:
                     if agent.TRAIN:
                         #agent.save(episode, save_folder)
                         if self._testing(env, agent, episode, data_collector, self.ENV_NAME):
-                            agent.save(episode, save_folder)
-                            data_collector.save_report(self.ENV_NAME)
-                            data_collector.solved = True
-                            break
+                            self.finish(agent, env, episode, save_folder, data_collector)
+                            return
                 if self.TIME_LIMIT > 0 and (time.time() - start_time) > self.TIME_LIMIT:
-                    agent.save(episode, save_folder)
-                    data_collector.save_report(self.ENV_NAME)
-                    break
-            agent.close()
-
+                    self.finish(agent, env,episode, save_folder, data_collector)
+                    return
+            self.finish(agent, env, episode, save_folder, data_collector)
+            return
         except KeyboardInterrupt:
-            agent.save(episode, save_folder)
-            if self.RECORD_VIDEO:
-                monitor.close()
+            self.finish(agent, env, episode, save_folder, data_collector)
+            return
+
+    def finish(self, agent, env, episode, save_folder, data_collector):
+        agent.save(episode, save_folder)
+        data_collector.save_report(self.ENV_NAME)
+        if self.RECORD_VIDEO:
+            env.close()
+        agent.close()
+
 
     def slow_render(self, env):
         env.render()
