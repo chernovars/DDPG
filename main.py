@@ -69,7 +69,7 @@ class World:
         self.ACTOR_SETTINGS = []
         self.CRITIC_SETTINGS = []
 
-    def main(self, save_folder):
+    def main(self, save_folder, data_save=True):
         #myplot = plot.Plot() # TODO: real-time plotting for state analysys
 
         start_time = 0
@@ -118,17 +118,18 @@ class World:
                             self.finish(agent, env, episode, save_folder, data_collector)
                             return
                 if self.TIME_LIMIT > 0 and (time.time() - start_time) > self.TIME_LIMIT:
-                    self.finish(agent, env,episode, save_folder, data_collector)
+                    self.finish(agent, env,episode, save_folder, data_collector, data_save)
                     return
-            self.finish(agent, env, episode, save_folder, data_collector)
+            self.finish(agent, env, episode, save_folder, data_collector, data_save)
             return
         except KeyboardInterrupt:
-            self.finish(agent, env, episode, save_folder, data_collector)
+            self.finish(agent, env, episode, save_folder, data_collector, data_save)
             return
 
-    def finish(self, agent, env, episode, save_folder, data_collector):
-        agent.save(episode, save_folder)
-        data_collector.save_report(self.ENV_NAME)
+    def finish(self, agent, env, episode, save_folder, data_collector, data_save=False):
+        if not data_save:
+            agent.save(episode, save_folder)
+            data_collector.save_report(self.ENV_NAME)
         if self.RECORD_VIDEO:
             env.close()
         agent.close()
