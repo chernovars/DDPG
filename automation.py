@@ -38,13 +38,12 @@ def scenario(_scenario, old_scenario_folder=""):
         with open(save_folder + '/status.txt', 'a') as the_file:
             the_file.write('Finished\n')
 
-def demo(old_scenario_folder):
+def demo(old_scenario_folder, type=""):
     assert old_scenario_folder is not ""
 
     lst = os.listdir(old_scenario_folder)
     start = "scenario"
-    scenario = max(filter(lambda k: k.startswith(start), lst))
-
+    scenario = max(filter(lambda k: k.startswith(start), lst)) # Find the last experiment created
 
     tree = ET.parse(scenario)
     root = tree.getroot()
@@ -52,12 +51,17 @@ def demo(old_scenario_folder):
     for t in root:
         i = i+1
         t_folder = old_scenario_folder + "/Task" + str(i)
-        os.makedirs(old_scenario_folder + "/Videos", exist_ok=True)
-        task(t, t_folder, demo=True)
+        if type == "video":
+            os.makedirs(old_scenario_folder + "/Videos", exist_ok=True)
 
-def task(_task, save_folder, demo=False):
+        task(t, t_folder, demo=True, demo_type=type)
+
+def task(_task, save_folder, demo=False, demo_type=None):
     if demo:
-        rl_world = main.World(RENDER_STEP=True, RENDER_delay=0.0005, TRAIN=False, NOISE=False)
+        if demo_type == "video":
+            rl_world = main.World(RENDER_STEP=True, RENDER_delay=0.0005, TRAIN=False, NOISE=False)
+        elif demo_type == "test":
+            rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=False, NOISE=False)
     else:
         rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=True, NOISE=True)
 
@@ -93,10 +97,19 @@ def task(_task, save_folder, demo=False):
             rl_world.OVER_LAST = int(el_end_criteria[1].text)
 
         if demo:
-            rl_world.RECORD_VIDEO = True
-            rl_world.EPISODES = 3
-            rl_world.UNTIL_SOLVED = False
-            rl_world.TEST_ON_EPISODE = 10 #so that we never test (because we have only 3 episodes)
+            if demo_type == "video":
+                rl_world.RECORD_VIDEO = True
+                rl_world.EPISODES = 3
+                rl_world.UNTIL_SOLVED = False
+                rl_world.TEST_ON_EPISODE = 10 #so that we never test (because we have only 3 episodes)
+            if demo_type == "test":
+                rl_world.EPISODES = 1
+                rl_world.UNTIL_SOLVED = False
+                rl_world.TEST_ON_EPISODE = 1
+                rl_world.TEST = 100
+            else:
+                print("Wrong demo type. Exiting...")
+                exit(1)
         try:
             rl_world.main(save_folder, data_save=demo)
         except Exception as e:
@@ -105,9 +118,24 @@ def task(_task, save_folder, demo=False):
                 the_file.write('Exception '+str(e)+'\n')
 
 def copy_folders(src, dst, beginning_of_name):
+    l = get_folders_starting_with(src, beginning_of_name)
+    for f in l:
+        shutil.copytree(src + "/" + f, dst + "/" + f)
+
+def get_folders_starting_with(src, beginning_of_name):
+    res = []
     for f in os.listdir(src + "/"):
         if f.startswith(beginning_of_name) and os.path.isdir(src + "/" + f):
-            shutil.copytree(src + "/" + f, dst + "/" + f)
+            res.append(f)
+    return res
+
+def get_files_starting_with(src, beginning_of_name):
+    res = []
+    for f in os.listdir(src + "/"):
+        if f.startswith(beginning_of_name) and os.path.isfile(src + "/" + f):
+            res.append(f)
+    return res
+
 #def read_file_to_list:
 
 

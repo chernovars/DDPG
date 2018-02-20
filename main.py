@@ -12,14 +12,85 @@ import csv
 
 import shutil
 
+def generatePlot(x, y = None, title = "", labels = None, save_folder = None, show_picture = True, color = 'b' ):
+    plt.figure()
+    if x is None:
+        print("def generatePlot: no x specified")
+        raise AssertionError
+
+    if y:
+        plt.plot(x, y, color)
+    else:
+        plt.plot(x, color)
+
+    if labels is None:
+        plt.xlabel('x label')
+        plt.ylabel('y label')
+    else:
+        plt.xlabel(labels[x])
+        plt.ylabel(labels[y])
+
+    if title:
+        plt.title(title)
+
+    if save_folder:
+        plt.savefig(save_folder)
+
+    if show_picture:
+        plt.show(block=False)
+
+def generatePlot(*y, x = None, title = "", labels = None, legend=None, save_folder = None, show_picture = True, color = 'b'):
+
+    colors = ['b','y','r','c','m','g','k']
+
+    plt.figure()
+    plot_args = []
+
+    legths_y = [len(i) for i in y]
+    if min(legths_y) != max(legths_y):
+        print("Lenghts of y-lists should be the same")
+        raise AssertionError
+
+
+    if x is None and len(y) > 0:
+        x = list(range(0, len(y[0])))
+
+    if legend is None or len(legend) != len(y):
+        legend = ["y" + str(y.index(i)) for i in y]
+
+    if len(y) > 1 :
+        for i in range(0, len(y)):
+            plt.plot(x, y[i], colors[i%(len(colors))], label = legend[i] )
+    elif len(y) == 1 :
+        plot_args += [x, y[0], color]
+
+    plt.plot(plot_args)
+
+    if labels is None:
+        plt.xlabel('x label')
+        plt.ylabel('y label')
+    else:
+        plt.xlabel(labels[0])
+        plt.ylabel(labels[1])
+
+    if title:
+        plt.title(title)
+
+    plt.legend()
+    if save_folder:
+        plt.savefig(save_folder)
+
+    if show_picture:
+        plt.show(block=False)
+
 
 class DataCollector:
     def __init__(self, save_folder):
         self.time_point_first = time.time()
         self.time_point_last = time.time()
-        self.timelist = []
-        self.stepslist = []
-        self.rewardslist = []
+        self.time_list = []
+        self.steps_list = []
+        self.rewards_list = []
         self.EMA_reward = 0
         self.EMA_rewards_list = []
         self.save_folder = save_folder
@@ -29,21 +100,44 @@ class DataCollector:
     def _collect_data(self, step, episode_reward):
         self.time_point_last = time.time()
         print("time spent: ", self.time_point_last - self.time_point_first)
-        self.timelist.append(self.time_point_last - self.time_point_first)
+        self.time_list.append(self.time_point_last - self.time_point_first)
         print("steps made: ", step)
-        self.stepslist.append(step)
+        self.steps_list.append(step)
         print("reward:", episode_reward)
-        self.rewardslist.append(episode_reward)
+        self.rewards_list.append(episode_reward)
         self.EMA_reward = 0.5 * episode_reward + 0.95 * self.EMA_reward
         self.EMA_rewards_list.append(self.EMA_reward)
         self.time_point_first = self.time_point_last
 
-    def save_report(self, name):
+    def save_rewards_list(self, name):
         with open(self.save_folder + name, "w") as output:
             writer = csv.writer(output, lineterminator='\n')
-            writer.writerow([len(self.rewardslist)])
-            for val in self.rewardslist:
+            writer.writerow([len(self.rewards_list)])
+            for val in self.rewards_list:
                 writer.writerow([val])
+
+    def load_rewards_list(self, file):
+        self.save_folder = file
+
+        if not os.path.isfile(file):
+            print("def load_rewards_list: no path specified")
+            exit(1)
+
+        with open(file, "r") as f:
+            n = f.readline()
+            x = f.readlines()
+            x = [float(i.strip()) for i in x ]
+            self.rewards_list = x
+
+        return self.rewards_list
+
+    def listToEMA(self, orig, tau = 0.98):
+        EMA = []
+        EMA.append(orig[0] * (1 - tau))
+        for i in range(1, len(orig)):
+            EMA.append(EMA[i-1] * tau + orig[i] * (1 - tau))
+
+        return EMA
 
 class World:
 
@@ -111,7 +205,7 @@ class World:
                         data_collector._collect_data(steps, episode_reward)
                         break
                 # Testing:
-                if (episode % self.TEST_ON_EPISODE) == 0 and episode > 100:
+                if (episode % self.TEST_ON_EPISODE) == 0 and episode > self.TEST_ON_EPISODE:
                     if agent.TRAIN:
                         #agent.save(episode, save_folder)
                         if self._testing(env, agent, episode, data_collector, self.ENV_NAME):
@@ -129,7 +223,7 @@ class World:
     def finish(self, agent, env, episode, save_folder, data_collector, data_save=False):
         if not data_save:
             agent.save(episode, save_folder)
-            data_collector.save_report(self.ENV_NAME)
+            data_collector.save_rewards_list(self.ENV_NAME)
         if self.RECORD_VIDEO:
             env.close()
         agent.close()
@@ -152,7 +246,7 @@ class World:
             if done:
                 break
 
-    def _plotting(x, data_collector, env_name):
+    def _plotting(self, x, data_collector, env_name):
         today = datetime.date.today().strftime("%d-%m-%Y")
 
         try:
@@ -161,15 +255,12 @@ class World:
             if e.errno != errno.EEXIST:
                 raise
 
-        plt.figure(1)
-        plt.plot(x, np.array(data_collector.stepslist), 'b')
-        plt.savefig("./experiments/" + env_name + "/Pictures/steps" + today)
-        plt.figure(2)
-        plt.plot(x, np.array(data_collector.rewardslist), 'r')
-        plt.savefig("./experiments/" + env_name + "/Pictures/rewards" + today)
-        plt.figure(3)
-        plt.plot(x, np.array(data_collector.EMA_rewards_list))
-        plt.savefig("./experiments/" + env_name + "/Pictures/filtered_rewards" + today)
+        path = "./experiments/" + env_name + "/Pictures/"
+        generatePlot(np.array(data_collector.stepslist), x=x, title=today, labels=["episodes", "steps"], save_folder=path + "steps" + today, show_picture=True)
+        generatePlot(np.array(data_collector.rewardslist), x=x, title="", labels=["episodes", "steps"], save_folder=path + "rewards" + today,
+                     show_picture=True, color='r')
+        generatePlot(np.array(data_collector.EMA_rewards_list), x=x, title="", labels=["episodes", "steps"], save_folder=path + "filtered_rewards" + today,
+                     show_picture=True, color='r')
         plt.show(block=False)
 
     def _testing(self, env, agent, episode, data_collector, env_name):
