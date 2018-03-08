@@ -40,10 +40,7 @@ class ActorNetwork:
 
         self.load_network()
 
-    def create_training_method(self):
-        self.q_gradient_input = tf.placeholder("float", [None, self.action_dim])
-        self.parameters_gradients = tf.gradients(self.action_output, self.net, -self.q_gradient_input)
-        self.optimizer = tf.train.AdamOptimizer(self.LEARNING_RATE).apply_gradients(zip(self.parameters_gradients, self.net))
+
 
     def create_network(self, state_dim, action_dim):
         layer1_size = self.LAYER1_SIZE
@@ -59,6 +56,7 @@ class ActorNetwork:
         W3 = tf.Variable(tf.random_uniform([layer2_size, action_dim], -3e-3, 3e-3))
         b3 = tf.Variable(tf.random_uniform([action_dim], -3e-3, 3e-3))
 
+
         layer0_bn = self.batch_norm_layer(state_input, training_phase=is_training, scope_bn='batch_norm_0',
                                           activation=tf.identity)
         layer1 = tf.matmul(layer0_bn, W1) + b1
@@ -69,6 +67,11 @@ class ActorNetwork:
                                           activation=tf.nn.relu)
 
         action_output = tf.tanh(tf.matmul(layer2_bn, W3) + b3)
+
+        scaling_factor = tf.constant(0.9999)
+        decay = [tf.scalar_mul(scaling_factor, param) for param in [W1, b1, W2, b2, W3, b3]]
+
+        action_output = [action_output, decay]
 
         return state_input, action_output, [W1, b1, W2, b2, W3, b3], is_training
 
@@ -96,21 +99,39 @@ class ActorNetwork:
     def update_target(self):
         self.sess.run(self.target_update)
 
+    def create_training_method(self):
+        self.q_gradient_input = tf.placeholder("float", [None, self.action_dim])
+        self.parameters_gradients = tf.gradients(self.action_output[0], self.net, -self.q_gradient_input)
+        self.normalized_parameters_gradients = list(
+            map(lambda x: tf.div(x, self.BATCH_SIZE), self.parameters_gradients))
+        self.optimizer = tf.train.AdamOptimizer(self.LEARNING_RATE).apply_gradients(
+            zip(self.normalized_parameters_gradients, self.net))
+
     def train(self, q_gradient_batch, state_batch):
-        self.sess.run(self.optimizer, feed_dict={
+        self.sess.run([self.optimizer] + self.action_output[1:], feed_dict={
             self.q_gradient_input: q_gradient_batch,
             self.state_input: state_batch,
             self.is_training: True
         })
 
     def actions(self, state_batch):
-        return self.sess.run(self.action_output, feed_dict={
+        return self.sess.run(self.action_output[0], feed_dict={
             self.state_input: state_batch,
-            self.is_training: True
+            self.is_training: False
         })
 
+    def create_decay(self, net):
+        scaling_factor = tf.constant(0.9999)
+        self.decay = [tf.scalar_mul(scaling_factor, param) for param in net]
+
+
+    '''def weights_decay(self, weights):
+        return self.sess.run(self.decay, feed_dict={
+            self.state_input: state_batch,
+        })'''
+
     def action(self, state):
-        return self.sess.run(self.action_output, feed_dict={
+        return self.sess.run(self.action_output[0], feed_dict={
             self.state_input: [state],
             self.is_training: False
         })[0]
