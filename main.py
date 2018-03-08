@@ -78,7 +78,7 @@ def generatePlot(*y, x=None, scatter=None, title="", labels=None, legend=None, s
         plt.title(title)
 
     if scatter is not None:
-        plt.scatter(scatter[0], scatter[1], 'g')
+        plt.scatter(scatter[0], scatter[1], c='r', zorder=100)
 
     plt.legend()
     if save_folder:
@@ -154,7 +154,7 @@ class DataCollector:
             n = f.readline()
             x = f.readlines()
             for line in x:
-                l = line.split()
+                l = line.split(',')
                 self.test_list_x.append(float(l[0]))
                 self.test_list_y.append(float(l[1]))
         return [self.test_list_x, self.test_list_y]
@@ -260,6 +260,7 @@ class World:
         if not data_save:
             agent.save(episode, save_folder)
             data_collector.save_rewards_list()
+            data_collector.save_test_list()
         if self.RECORD_VIDEO:
             env.close()
         agent.close()

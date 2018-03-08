@@ -11,11 +11,12 @@ import time
 
 def processPicture(path):
     files = automation.get_files_starting_with(path, "Task")
-    for f in files:
+    files_filtered = list(filter(lambda s: not s.endswith("test"), files))
+    for f in files_filtered:
         dc = main.DataCollector("","")
         print(path + "/" + f)
-        info = dc.load_rewards_list(path + "/" + f)
         test = dc.load_test_list(path + "/" + f + "_test")
+        info = dc.load_rewards_list(path + "/" + f)
         ema = dc.listToEMA(info)
         title = args.scenario + " " + f
         labels = ["episodes", "rewards"]
