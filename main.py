@@ -85,7 +85,7 @@ def generatePlot(*y, x = None, title = "", labels = None, legend=None, save_fold
 
 
 class DataCollector:
-    def __init__(self, save_folder):
+    def __init__(self, save_folder, env_name):
         self.time_point_first = time.time()
         self.time_point_last = time.time()
         self.time_list = []
@@ -94,6 +94,11 @@ class DataCollector:
         self.EMA_reward = 0
         self.EMA_rewards_list = []
         self.save_folder = save_folder
+        self.env_name = env_name
+        if os.path.exists(self.save_folder + self.env_name):
+            self.rewards_list = self.load_rewards_list(self.save_folder + self.env_name)
+            self.EMA_rewards_list = self.listToEMA(self.rewards_list)
+
 
         self.solved = False
 
@@ -109,16 +114,14 @@ class DataCollector:
         self.EMA_rewards_list.append(self.EMA_reward)
         self.time_point_first = self.time_point_last
 
-    def save_rewards_list(self, name):
-        with open(self.save_folder + name, "w") as output:
+    def save_rewards_list(self):
+        with open(self.save_folder + self.env_name, "w") as output:
             writer = csv.writer(output, lineterminator='\n')
             writer.writerow([len(self.rewards_list)])
             for val in self.rewards_list:
                 writer.writerow([val])
 
     def load_rewards_list(self, file):
-        self.save_folder = file
-
         if not os.path.isfile(file):
             print("def load_rewards_list: no path specified")
             exit(1)
@@ -178,7 +181,7 @@ class World:
             env = monitor
         else:
             env = env_real
-        data_collector = DataCollector(save_folder)
+        data_collector = DataCollector(save_folder, self.ENV_NAME)
 
         try:
             for episode in range(self.EPISODES):
@@ -223,7 +226,7 @@ class World:
     def finish(self, agent, env, episode, save_folder, data_collector, data_save=False):
         if not data_save:
             agent.save(episode, save_folder)
-            data_collector.save_rewards_list(self.ENV_NAME)
+            data_collector.save_rewards_list()
         if self.RECORD_VIDEO:
             env.close()
         agent.close()

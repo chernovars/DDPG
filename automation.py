@@ -5,7 +5,6 @@ import datetime
 import xml.etree.ElementTree as ET
 import main
 import shutil
-import sys
 import time
 gc.enable()
 
@@ -24,7 +23,14 @@ def scenario(_scenario, old_scenario_folder=""):
         with open(save_folder + '/status.txt', 'w') as the_file:
             the_file.write('Executing scenario\n')
         if old_scenario_folder:
-            copy_folders("./experiments/" + old_scenario_folder, save_folder, "Task")
+            load_folder = "./experiments/" + old_scenario_folder
+            copy_folders(load_folder, save_folder, "Task")
+            reward_files = get_files_starting_with(load_folder, "Task")
+            for f in reward_files:
+                src = load_folder + "/" + f
+                print(src)
+                print(save_folder)
+                shutil.copy(load_folder + "/" + f, save_folder)
         for t in root:
             i = i+1
             t_folder = save_folder + "/Task" + str(i)
@@ -43,7 +49,7 @@ def demo(old_scenario_folder, type=""):
 
     lst = os.listdir(old_scenario_folder)
     start = "scenario"
-    scenario = max(filter(lambda k: k.startswith(start), lst)) # Find the last experiment created
+    scenario = max(filter(lambda k: k.startswith(start), lst)) # Find scenario file to get the settings
 
     tree = ET.parse(scenario)
     root = tree.getroot()
@@ -59,7 +65,7 @@ def demo(old_scenario_folder, type=""):
 def task(_task, save_folder, demo=False, demo_type=None):
     if demo:
         if demo_type == "video":
-            rl_world = main.World(RENDER_STEP=True, RENDER_delay=0.0005, TRAIN=False, NOISE=False)
+            rl_world = main.World(RENDER_STEP=True, RENDER_delay=0.0002, TRAIN=False, NOISE=False)
         elif demo_type == "test":
             rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=False, NOISE=False)
     else:
@@ -102,7 +108,7 @@ def task(_task, save_folder, demo=False, demo_type=None):
                 rl_world.EPISODES = 3
                 rl_world.UNTIL_SOLVED = False
                 rl_world.TEST_ON_EPISODE = 10 #so that we never test (because we have only 3 episodes)
-            if demo_type == "test":
+            elif demo_type == "test":
                 rl_world.EPISODES = 1
                 rl_world.UNTIL_SOLVED = False
                 rl_world.TEST_ON_EPISODE = 1
