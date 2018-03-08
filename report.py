@@ -9,8 +9,20 @@ import sys
 import time
 
 
+def processPicture(path):
+    files = automation.get_files_starting_with(path, "Task")
+    for f in files:
+        dc = main.DataCollector("","")
+        print(path + "/" + f)
+        info = dc.load_rewards_list(path + "/" + f)
+        ema = dc.listToEMA(info)
+        title = args.scenario + " " + f
+        labels = ["episodes", "rewards"]
+        legend = ["Reward on noise", "EMA"]
+        main.generatePlot(info, ema, title=title, labels=labels, legend=legend, save_folder=temp_path)
 
-
+def generateReport():
+    print("Report Generated")
 
 
 
@@ -18,8 +30,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-e", "--scenario", type=str,
                         help="scenario to report on")
-    parser.add_argument("-v", "--video", type=str,
-                        help="execute scenario using weights from old scenario c")
+    parser.add_argument("-v", "--video", action="store_true",
+                        help="shoot video for scenario")
     parser.add_argument("-t", "--test", action="store_true", help="evaluate average reward")
     parser.add_argument("-n", type=int,
                         help="number of videos to shoot")
@@ -49,18 +61,9 @@ if __name__ == '__main__':
     elif args.test:
         automation.demo(temp_path, type="test")
     elif args.picture:
-        files = automation.get_files_starting_with(temp_path, "Task")
-        for f in files:
-            dc = main.DataCollector("")
-            print(temp_path + "/" + f)
-            info = dc.load_rewards_list(temp_path + "/" + f)
-            ema = dc.listToEMA(info)
-            title = args.scenario + " " + f
-            labels = ["episodes", "rewards"]
-            legend = ["Reward on noise", "EMA"]
-            main.generatePlot(info, ema, title=title, labels=labels, legend=legend, save_folder=temp_path)
-
-
-
+        processPicture(temp_path)
     elif args.report:
-        pass
+        automation.demo(temp_path, type="video")
+        automation.demo(temp_path, type="test")
+        processPicture(temp_path)
+
