@@ -12,7 +12,8 @@ import csv
 
 import shutil
 
-def generatePlot(x, y = None, title = "", labels = None, save_folder = None, show_picture = True, color = 'b' ):
+
+def generatePlot_delete(x, y=None, title="", labels=None, save_folder=None, show_picture=True, color='b'):
     plt.figure()
     if x is None:
         print("def generatePlot: no x specified")
@@ -39,9 +40,10 @@ def generatePlot(x, y = None, title = "", labels = None, save_folder = None, sho
     if show_picture:
         plt.show(block=False)
 
-def generatePlot(*y, x = None, title = "", labels = None, legend=None, save_folder = None, show_picture = True, color = 'b'):
 
-    colors = ['b','y','r','c','m','g','k']
+def generatePlot(*y, x=None, scatter=None, title="", labels=None, legend=None, save_folder=None, show_picture=True,
+                 color='b'):
+    colors = ['b', 'y', 'r', 'c', 'm', 'g', 'k']
 
     plt.figure()
     plot_args = []
@@ -51,17 +53,16 @@ def generatePlot(*y, x = None, title = "", labels = None, legend=None, save_fold
         print("Lenghts of y-lists should be the same")
         raise AssertionError
 
-
     if x is None and len(y) > 0:
         x = list(range(0, len(y[0])))
 
     if legend is None or len(legend) != len(y):
         legend = ["y" + str(y.index(i)) for i in y]
 
-    if len(y) > 1 :
+    if len(y) > 1:
         for i in range(0, len(y)):
-            plt.plot(x, y[i], colors[i%(len(colors))], label = legend[i] )
-    elif len(y) == 1 :
+            plt.plot(x, y[i], colors[i % (len(colors))], label=legend[i])
+    elif len(y) == 1:
         plot_args += [x, y[0], color]
 
     plt.plot(plot_args)
@@ -75,6 +76,9 @@ def generatePlot(*y, x = None, title = "", labels = None, legend=None, save_fold
 
     if title:
         plt.title(title)
+
+    if scatter is not None:
+        plt.scatter(scatter[0], scatter[1], 'g')
 
     plt.legend()
     if save_folder:
@@ -91,6 +95,9 @@ class DataCollector:
         self.time_list = []
         self.steps_list = []
         self.rewards_list = []
+        self.test_list_y = []
+        self.test_list_x = []
+
         self.EMA_reward = 0
         self.EMA_rewards_list = []
         self.save_folder = save_folder
@@ -98,7 +105,8 @@ class DataCollector:
         if os.path.exists(self.save_folder + self.env_name):
             self.rewards_list = self.load_rewards_list(self.save_folder + self.env_name)
             self.EMA_rewards_list = self.listToEMA(self.rewards_list)
-
+        if os.path.exists(self.save_folder + self.env_name + "_test"):
+            self.load_test_list(self.save_folder + self.env_name + "_test")
 
         self.solved = False
 
@@ -121,6 +129,13 @@ class DataCollector:
             for val in self.rewards_list:
                 writer.writerow([val])
 
+    def save_test_list(self):
+        with open(self.save_folder + self.env_name + "_test", "w") as output:
+            writer = csv.writer(output, lineterminator='\n')
+            writer.writerow([len(self.test_list_x)])
+            for x, y in zip(self.test_list_x, self.test_list_y):
+                writer.writerow([x, y])
+
     def load_rewards_list(self, file):
         if not os.path.isfile(file):
             print("def load_rewards_list: no path specified")
@@ -129,18 +144,29 @@ class DataCollector:
         with open(file, "r") as f:
             n = f.readline()
             x = f.readlines()
-            x = [float(i.strip()) for i in x ]
+            x = [float(i.strip()) for i in x]
             self.rewards_list = x
 
         return self.rewards_list
 
-    def listToEMA(self, orig, tau = 0.98):
+    def load_test_list(self, file):
+        with open(file, "r") as f:
+            n = f.readline()
+            x = f.readlines()
+            for line in x:
+                l = line.split()
+                self.test_list_x.append(float(l[0]))
+                self.test_list_y.append(float(l[1]))
+        return [self.test_list_x, self.test_list_y]
+
+    def listToEMA(self, orig, tau=0.98):
         EMA = []
         EMA.append(orig[0] * (1 - tau))
         for i in range(1, len(orig)):
-            EMA.append(EMA[i-1] * tau + orig[i] * (1 - tau))
+            EMA.append(EMA[i - 1] * tau + orig[i] * (1 - tau))
 
         return EMA
+
 
 class World:
 
@@ -167,17 +193,19 @@ class World:
         self.CRITIC_SETTINGS = []
 
     def main(self, save_folder, data_save=True):
-        #myplot = plot.Plot() # TODO: real-time plotting for state analysys
+        # myplot = plot.Plot() # TODO: real-time plotting for state analysys
 
         start_time = 0
         if self.TIME_LIMIT > 0:
             start_time = time.time()
 
         env_real = filter_env.makeFilteredEnv(gym.make(self.ENV_NAME))
-        agent = DDPG(env_real, self.TRAIN, self.NOISE, self.ENV_NAME, self.ACTOR_SETTINGS, self.CRITIC_SETTINGS, save_folder)
+        agent = DDPG(env_real, self.TRAIN, self.NOISE, self.ENV_NAME, self.ACTOR_SETTINGS, self.CRITIC_SETTINGS,
+                     save_folder)
 
         if self.RECORD_VIDEO:
-            monitor = gym.wrappers.Monitor(env_real, 'experiments/' + self.ENV_NAME, (lambda i: (i % self.VIDEO_ON_EPISODE) == 0), resume=True)
+            monitor = gym.wrappers.Monitor(env_real, 'experiments/' + self.ENV_NAME,
+                                           (lambda i: (i % self.VIDEO_ON_EPISODE) == 0), resume=True)
             env = monitor
         else:
             env = env_real
@@ -210,12 +238,12 @@ class World:
                 # Testing:
                 if (episode % self.TEST_ON_EPISODE) == 0 and episode > self.TEST_ON_EPISODE:
                     if agent.TRAIN:
-                        #agent.save(episode, save_folder)
+                        # agent.save(episode, save_folder)
                         if self._testing(env, agent, episode, data_collector, self.ENV_NAME):
                             self.finish(agent, env, episode, save_folder, data_collector)
                             return
                 if self.TIME_LIMIT > 0 and (time.time() - start_time) > self.TIME_LIMIT:
-                    self.finish(agent, env,episode, save_folder, data_collector, data_save)
+                    self.finish(agent, env, episode, save_folder, data_collector, data_save)
                     return
             self.finish(agent, env, episode, save_folder, data_collector, data_save)
             return
@@ -230,7 +258,6 @@ class World:
         if self.RECORD_VIDEO:
             env.close()
         agent.close()
-
 
     def slow_render(self, env):
         env.render()
@@ -259,10 +286,13 @@ class World:
                 raise
 
         path = "./experiments/" + env_name + "/Pictures/"
-        generatePlot(np.array(data_collector.stepslist), x=x, title=today, labels=["episodes", "steps"], save_folder=path + "steps" + today, show_picture=True)
-        generatePlot(np.array(data_collector.rewardslist), x=x, title="", labels=["episodes", "steps"], save_folder=path + "rewards" + today,
+        generatePlot(np.array(data_collector.stepslist), x=x, title=today, labels=["episodes", "steps"],
+                     save_folder=path + "steps" + today, show_picture=True)
+        generatePlot(np.array(data_collector.rewardslist), x=x, title="", labels=["episodes", "steps"],
+                     save_folder=path + "rewards" + today,
                      show_picture=True, color='r')
-        generatePlot(np.array(data_collector.EMA_rewards_list), x=x, title="", labels=["episodes", "steps"], save_folder=path + "filtered_rewards" + today,
+        generatePlot(np.array(data_collector.EMA_rewards_list), x=x, title="", labels=["episodes", "steps"],
+                     save_folder=path + "filtered_rewards" + today,
                      show_picture=True, color='r')
         plt.show(block=False)
 
@@ -282,6 +312,8 @@ class World:
                 if done:
                     break
         ave_reward = total_reward / self.TEST
+        data_collector.test_list_x.append(episode)
+        data_collector.test_list_y.append(ave_reward)
         print('episode: ', episode, 'Evaluation Average Reward:', ave_reward)
         if self.UNTIL_SOLVED and ave_reward > self.AVG_REWARD:
             total_reward = 0
@@ -300,7 +332,7 @@ class World:
         return False
 
 
-
-if __name__ == '__main__':
+'''if __name__ == '__main__':
     w = World
     w.main()
+'''

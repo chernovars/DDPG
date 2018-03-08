@@ -15,11 +15,12 @@ def processPicture(path):
         dc = main.DataCollector("","")
         print(path + "/" + f)
         info = dc.load_rewards_list(path + "/" + f)
+        test = dc.load_test_list(path + "/" + f + "_test")
         ema = dc.listToEMA(info)
         title = args.scenario + " " + f
         labels = ["episodes", "rewards"]
         legend = ["Reward on noise", "EMA"]
-        main.generatePlot(info, ema, title=title, labels=labels, legend=legend, save_folder=temp_path)
+        main.generatePlot(info, ema, scatter=test, title=title, labels=labels, legend=legend, save_folder=temp_path)
 
 def generateReport():
     print("Report Generated")
