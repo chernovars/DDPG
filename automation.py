@@ -77,7 +77,7 @@ def task(_task, save_folder, demo=False, demo_type=None):
 
         rl_world.ENV_NAME = _task[0].attrib["name"]
         rl_world.TEST = 10
-        rl_world.TEST_ON_EPISODE = 200
+        rl_world.TEST_ON_EPISODE = 100
 
         el_actor = _task[0][0]
         el_critic = _task[0][1]

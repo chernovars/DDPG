@@ -194,6 +194,7 @@ class World:
 
     def main(self, save_folder, data_save=True):
         # myplot = plot.Plot() # TODO: real-time plotting for state analysys
+        noise_period = 200
 
         start_time = 0
         if self.TIME_LIMIT > 0:
@@ -242,6 +243,10 @@ class World:
                         if self._testing(env, agent, episode, data_collector, self.ENV_NAME):
                             self.finish(agent, env, episode, save_folder, data_collector)
                             return
+
+                if (episode % noise_period) == 0 and episode > 0:
+                    self.NOISE = not self.NOISE
+
                 if self.TIME_LIMIT > 0 and (time.time() - start_time) > self.TIME_LIMIT:
                     self.finish(agent, env, episode, save_folder, data_collector, data_save)
                     return
