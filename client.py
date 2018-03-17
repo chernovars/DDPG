@@ -3,11 +3,20 @@ import paramiko as pssh
 import os
 import time
 import shlex
-import main
 import subprocess
 from ssh_wrapper import *
+import argparse
+
+
 
 def main(_host, _port, _login, _password):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--download", action="store_true",
+                        help="download experiments which you don't have yet")
+    parser.add_argument("-R", "--remove", action="store_true",
+                        help="shoot video for scenario")
+    args = parser.parse_args()
+
     ssh = None
     try:
         ssh = pssh.SSHClient()
@@ -15,32 +24,65 @@ def main(_host, _port, _login, _password):
         ssh.connect(_host, port=_port, username=_login, password=_password)
         ssh_wrap = StdPipeWrapper(ssh)
 
-        path = "~/DDPG_working/DDPG/"
-
-        print(ssh_wrap.exec("ls", "-l"))
-
-
-        print(ssh_wrap.exec("tar czvf --remove-files DDPG.tar.gz -C ./DDPG_working/DDPG ./experiments")) # Compress (with overwriting the archive)
-
-        print(ssh_wrap.exec("mkdir ./DDPG_working/DDPG/experiments"))
-
-        scp_path = "arseniy@" + str(_host) + ":~/DDPG.tar.gz"
-
-        shell("scp -P 2345 " + scp_path + " ~/Git/DDPG") # Donwload from the client side
-
-        shell("tar xvzf ~/Git/DDPG/DDPG.tar.gz -C ~/Git/DDPG/") # Uncompress
-
-        shell("ls -l ~/Git/DDPG/experiments")
-
-
+        if args.download:
+            a = _get_list_of_folders_serv(ssh_wrap, "~/DDPG_working/DDPG/experiments")
+            b = _get_list_of_folders_client("/media/ars/lin_part2/Git2/DDPG/experiments")
+            diff = list(set(a) - set(b))
+            if args.remove:
+                print(diff," to be downloaded")
+                download_experiments(ssh_wrap, _host, delete_originals=True, experiments=diff)
+            else:
+                download_experiments(ssh_wrap, _host, experiments=diff)
     finally:
         if ssh:
             ssh.close()
 
-    print("scp", "-P 2345", "arseniy@" + str(_host) + ":~/DDPG.tar.gz", "./Git/DDPG")
+#    print("scp", "-P 2345", "arseniy@" + str(_host) + ":~/DDPG.tar.gz", "./Git/DDPG")
 
-def exec_scenario(scenario, ssh_wrapper):
-    pass
+def _get_list_of_folders_serv(ssh_wrap, path):
+    return ssh_wrap.exec("ls " + path).split("\n")[:-1]
+
+def _get_list_of_folders_client(path):
+    filenames = os.listdir(path)
+    result = []
+    for filename in filenames:
+        if os.path.isdir(os.path.join(path, filename)):
+            result.append(filename)
+    return result
+
+def download_experiments(ssh_wrap, _host, experiments=None, delete_originals=False):
+    path = "~/DDPG_working/DDPG/"
+
+    print(ssh_wrap.exec("ls", "-l"))
+
+    if delete_originals:
+        do_remove = "--remove-files "
+    else:
+        do_remove = ""
+
+    if experiments is None:
+        print(ssh_wrap.exec("tar cvf " + do_remove + "DDPG.tar -C ./DDPG_working/DDPG ./experiments"))
+    else:
+        if len(experiments) == 0:
+            print("Nothing new to download. Exiting...")
+            return
+
+        for i, f in enumerate(experiments):
+            if i == 0:
+                print(ssh_wrap.exec("tar cvf " + do_remove + "DDPG.tar -C ./DDPG_working/DDPG ./experiments/" + f))
+            else:
+                print(ssh_wrap.exec("tar uvf " + do_remove + "DDPG.tar -C ./DDPG_working/DDPG ./experiments/" + f))
+
+    print(ssh_wrap.exec("mkdir ./DDPG_working/DDPG/experiments")) #in case if deleted
+
+    scp_path = "arseniy@" + str(_host) + ":~/DDPG.tar"
+
+    #scp -P 2345 arseniy@" + str(_host) + ":~/DDPG.tar /media/ars/lin_part2/Git2/DDPG/
+    shell("scp -P 2345 " + scp_path + " /media/ars/lin_part2/Git2/DDPG/")
+
+    shell("tar xvf /media/ars/lin_part2/Git2/DDPG/DDPG.tar -C /media/ars/lin_part2/Git2/DDPG/")
+
+    shell("ls -l /media/ars/lin_part2/Git2/DDPG/experiments")
 
 def shell(command):
     subprocess.run([command], shell=True)
@@ -54,4 +96,7 @@ if __name__ == '__main__':
         root = tree.getroot()
         credentials = {elem.tag:elem.text for elem in root}
         main(credentials['host'], credentials['port'], credentials['login'], credentials['password'])
+
+
+
 
