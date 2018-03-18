@@ -42,7 +42,7 @@ def generatePlot_delete(x, y=None, title="", labels=None, save_folder=None, show
 
 
 def generatePlot(*y, x=None, scatter=None, title="", labels=None, legend=None, save_folder=None, show_picture=True,
-                 color='b'):
+                 color='b', x_start=0):
     colors = ['b', 'y', 'r', 'c', 'm', 'g', 'k']
 
     plt.figure()
@@ -53,8 +53,9 @@ def generatePlot(*y, x=None, scatter=None, title="", labels=None, legend=None, s
         print("Lenghts of y-lists should be the same")
         raise AssertionError
 
+
     if x is None and len(y) > 0:
-        x = list(range(0, len(y[0])))
+        x = list(range(x_start, x_start + len(y[0])))
 
     if legend is None or len(legend) != len(y):
         legend = ["y" + str(y.index(i)) for i in y]
@@ -180,7 +181,7 @@ class World:
         self.RENDER_delay = RENDER_delay  # 0.1
         self.TRAIN = TRAIN
         self.NOISE = NOISE
-        self.TEST_ON_EPISODE = 200
+        self.TEST_ON_EPISODE = 50 ################################# TODO: FIX IT !!!!
         self.VIDEO_ON_EPISODE = 20000  # 4*TEST_ON_EPISODE
         self.SHOW_PLOT = False
         self.RECORD_VIDEO = False
@@ -194,7 +195,8 @@ class World:
 
     def main(self, save_folder, data_save=True):
         # myplot = plot.Plot() # TODO: real-time plotting for state analysys
-        noise_period = 200
+        noise_period = 100000000 #100
+        self.NOISE = False
 
         start_time = 0
         if self.TIME_LIMIT > 0:
@@ -237,7 +239,7 @@ class World:
                         data_collector._collect_data(steps, episode_reward)
                         break
                 # Testing:
-                if (episode % self.TEST_ON_EPISODE) == 0 and episode > self.TEST_ON_EPISODE:
+                if (episode % self.TEST_ON_EPISODE) == 0 and episode > 1:
                     if agent.TRAIN:
                         # agent.save(episode, save_folder)
                         if self._testing(env, agent, episode, data_collector, self.ENV_NAME):

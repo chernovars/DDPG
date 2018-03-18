@@ -23,6 +23,7 @@ class ActorNetwork:
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.env_name = env_name
+        self.actor_settings = actor_settings
         self.save_folder = save_folder
         # create actor network
         self.state_input, self.action_output, self.net, self.is_training = self.create_network(state_dim, action_dim)
@@ -68,7 +69,7 @@ class ActorNetwork:
 
         action_output = tf.tanh(tf.matmul(layer2_bn, W3) + b3)
 
-        scaling_factor = tf.constant(0.9999)
+        scaling_factor = tf.constant(float(self.actor_settings["decay"]))
         decay = [tf.scalar_mul(scaling_factor, param) for param in [W1, b1, W2, b2, W3, b3]]
 
         action_output = [action_output, decay]
@@ -106,9 +107,11 @@ class ActorNetwork:
             map(lambda x: tf.div(x, self.BATCH_SIZE), self.parameters_gradients))
         self.optimizer = tf.train.AdamOptimizer(self.LEARNING_RATE).apply_gradients(
             zip(self.normalized_parameters_gradients, self.net))
+        if self.actor_settings["decay"] is not None and float(self.actor_settings["decay"]) != 1:
+            self.optimizer = [self.optimizer] + self.action_output[1]
 
     def train(self, q_gradient_batch, state_batch):
-        self.sess.run([self.optimizer] + self.action_output[1:], feed_dict={
+        self.sess.run(self.optimizer, feed_dict={
             self.q_gradient_input: q_gradient_batch,
             self.state_input: state_batch,
             self.is_training: True
@@ -121,7 +124,7 @@ class ActorNetwork:
         })
 
     def create_decay(self, net):
-        scaling_factor = tf.constant(0.9999)
+        scaling_factor = tf.constant(self.actor_settings["decay"])
         self.decay = [tf.scalar_mul(scaling_factor, param) for param in net]
 
 

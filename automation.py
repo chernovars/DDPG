@@ -8,7 +8,7 @@ import shutil
 import time
 gc.enable()
 
-def scenario(_scenario, old_scenario_folder=""):
+def scenario(_scenario, old_scenario_folder="", copy_task=None):
     cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) # before scenario becomes scenario.xml
     save_folder = "./experiments/" + _scenario + "_" + cur_time
     os.makedirs(save_folder, exist_ok=True)
@@ -24,13 +24,20 @@ def scenario(_scenario, old_scenario_folder=""):
             the_file.write('Executing scenario\n')
         if old_scenario_folder:
             load_folder = "./experiments/" + old_scenario_folder
-            copy_folders(load_folder, save_folder, "Task")
-            reward_files = get_files_starting_with(load_folder, "Task")
-            for f in reward_files:
-                src = load_folder + "/" + f
-                print(src)
-                print(save_folder)
-                shutil.copy(load_folder + "/" + f, save_folder)
+            if copy_task is None:
+                copy_folders(load_folder, save_folder, "Task")
+                reward_files = get_files_starting_with(load_folder, "Task")
+                for f in reward_files:
+                    src = load_folder + "/" + f
+                    print(src)
+                    print(save_folder)
+                    shutil.copy(load_folder + "/" + f, save_folder)
+            else:
+                copy_folder_and_duplicate(load_folder, save_folder, "Task" + str(copy_task), len(list(root)))
+                copy_file_and_duplicate(load_folder, save_folder, "Task" + str(copy_task), len(list(root)))
+
+
+
         for t in root:
             i = i+1
             t_folder = save_folder + "/Task" + str(i)
@@ -128,6 +135,18 @@ def copy_folders(src, dst, beginning_of_name):
     for f in l:
         shutil.copytree(src + "/" + f, dst + "/" + f)
 
+def copy_folder_and_duplicate(src, dst, beginning_of_name, duplicates=1):
+    l = get_folders_starting_with(src, beginning_of_name)[0]
+    for i in range(duplicates):
+        shutil.copytree(src + "/" + l, dst + "/" + "Task" + str(i+1))
+
+def copy_file_and_duplicate(src, dst, beginning_of_name, duplicates=1):
+    lst = get_files_starting_with(src, beginning_of_name)
+    for l in lst:
+        for i in range(duplicates):
+            shutil.copy(src + "/" + l, dst + "/" + l.replace(beginning_of_name, "Task" + str(i+1)))
+
+
 def get_folders_starting_with(src, beginning_of_name):
     res = []
     for f in os.listdir(src + "/"):
@@ -150,13 +169,17 @@ if __name__ == '__main__':
     parser.add_argument("scenario", type=str,
                         help="scenario to execute")
     parser.add_argument("-c", "--cont", type=str,
-                        help="execute scenario using weights from old scenario c")
+                        help="execute scenario by copying tasks results from old scenario c")
+
+    parser.add_argument("-n", "--task", type=int,
+                        help="execute scenario by copying old task for each new task")
+
     args = parser.parse_args()
 
 
     if args.cont:
         if os.path.exists("./experiments/" + args.cont):
-            scenario(args.scenario, old_scenario_folder=args.cont)
+            scenario(args.scenario, old_scenario_folder=args.cont, copy_task=args.task)
         else:
             print("Source directory does not exist. Aborting...")
             exit(1)

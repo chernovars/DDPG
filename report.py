@@ -7,6 +7,7 @@ import main
 import shutil
 import sys
 import time
+import numpy as np
 
 
 def processPicture(path):
@@ -16,12 +17,23 @@ def processPicture(path):
         dc = main.DataCollector("","")
         print(path + "/" + f)
         test = dc.load_test_list(path + "/" + f + "_test")
+
+        test_points_x_start = 0
+
         info = dc.load_rewards_list(path + "/" + f)
-        ema = dc.listToEMA(info)
+        last_points_to_show = len(info)
+        test_points = len(test[0])
+
+        test[0] = np.array(test[0])[-test_points:] + test_points_x_start
+        test[1] = np.array(test[1])[-test_points:]
+
+        ema = dc.listToEMA(info)[-last_points_to_show:]
+        info = info[-last_points_to_show:]
+
         title = args.scenario + " " + f
         labels = ["episodes", "rewards"]
         legend = ["Reward on noise", "EMA"]
-        main.generatePlot(info, ema, scatter=test, title=title, labels=labels, legend=legend, save_folder=temp_path)
+        main.generatePlot(info, ema, x_start=test_points_x_start, scatter=test, title=title, labels=labels, legend=legend, save_folder=temp_path)
 
 def generateReport():
     print("Report Generated")
