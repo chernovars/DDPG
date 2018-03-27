@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 import main
 import shutil
 import time
+import ast
 gc.enable()
 
 def scenario(_scenario, old_scenario_folder="", copy_task=None):
@@ -89,7 +90,10 @@ def task(_task, save_folder, demo=False, demo_type=None):
         el_actor = _task[0][0]
         el_critic = _task[0][1]
         el_end_criteria = _task[0][2]
-        rl_world.ACTOR_SETTINGS = el_actor.attrib
+
+
+        rl_world.ACTOR_SETTINGS = fill_default_paramers_for_net(strdict_to_numdict(el_actor.attrib))
+
         rl_world.ACTOR_SETTINGS["layers"] = []
         for child in el_actor:
             rl_world.ACTOR_SETTINGS["layers"].append(int(child.text))
@@ -161,6 +165,20 @@ def get_files_starting_with(src, beginning_of_name):
             res.append(f)
     return res
 
+def strdict_to_numdict(d):
+    res_dict = {}
+    for k in d:
+        res_dict[k] = converter(d[k])
+    return res_dict
+
+def converter(i):
+    try:
+        return ast.literal_eval(i)
+    except ValueError:
+        return i
+
+def fill_default_paramers_for_net(net):
+    return net
 #def read_file_to_list:
 
 
