@@ -15,12 +15,13 @@ def processPicture(path):
     files_filtered = list(filter(lambda s: not s.endswith("test"), files))
     for f in files_filtered:
         dc = main.DataCollector("","")
-        print(path + "/" + f)
-        test = dc.load_test_list(path + "/" + f + "_test")
+        temp_path = path + "/" + f
+        print(temp_path)
+        test = dc.load_test_list(temp_path + "_test")
 
         test_points_x_start = 0
 
-        info = dc.load_rewards_list(path + "/" + f)
+        info = dc.load_rewards_list(temp_path)
         last_points_to_show = len(info)
         test_points = len(test[0])
 
@@ -33,7 +34,7 @@ def processPicture(path):
         title = args.scenario + " " + f
         labels = ["episodes", "rewards"]
         legend = ["Reward on noise", "EMA"]
-        main.generatePlot(info, ema, x_start=test_points_x_start, scatter=test, title=title, labels=labels, legend=legend, save_folder=temp_path)
+        main.generatePlot(info, ema, x_start=test_points_x_start, scatter=test, title=title, labels=labels, legend=legend, save_folder=temp_path + ".png")
 
 def generateReport():
     print("Report Generated")
