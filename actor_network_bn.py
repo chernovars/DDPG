@@ -57,7 +57,6 @@ class ActorNetwork:
         W3 = tf.Variable(tf.random_uniform([layer2_size, action_dim], -3e-3, 3e-3))
         b3 = tf.Variable(tf.random_uniform([action_dim], -3e-3, 3e-3))
 
-
         layer0_bn = self.batch_norm_layer(state_input, training_phase=is_training, scope_bn='batch_norm_0',
                                           activation=tf.identity)
         layer1 = tf.matmul(layer0_bn, W1) + b1
@@ -69,8 +68,9 @@ class ActorNetwork:
 
         action_output = tf.tanh(tf.matmul(layer2_bn, W3) + b3)
 
-        scaling_factor = tf.constant(float(self.actor_settings["decay"]))
-        decay = [tf.scalar_mul(scaling_factor, param) for param in [W1, b1, W2, b2, W3, b3]]
+        ##scaling_factor = tf.constant(float(self.actor_settings["decay"]))
+        scaling_factor = tf.constant(0.999)
+        decay = [param.assign(param * scaling_factor) for param in [W1, b1, W2, b2, W3, b3]]
 
         action_output = [action_output, decay]
 
@@ -107,8 +107,8 @@ class ActorNetwork:
             map(lambda x: tf.div(x, self.BATCH_SIZE), self.parameters_gradients))
         self.optimizer = tf.train.AdamOptimizer(self.LEARNING_RATE).apply_gradients(
             zip(self.normalized_parameters_gradients, self.net))
-        if self.actor_settings["decay"] is not None and float(self.actor_settings["decay"]) != 1:
-            self.optimizer = [self.optimizer] + self.action_output[1]
+        #if self.actor_settings["decay"] is not None and float(self.actor_settings["decay"]) != 1:
+        self.optimizer = [self.optimizer] + self.action_output[1]
 
     def train(self, q_gradient_batch, state_batch):
         self.sess.run(self.optimizer, feed_dict={
@@ -157,8 +157,6 @@ class ActorNetwork:
                        lambda: tf.contrib.layers.batch_norm(x, activation_fn=activation, center=True, scale=True,
                                                             updates_collections=None, is_training=False, reuse=True,
                                                             scope=scope_bn, decay=0.9, epsilon=1e-5))
-
-
 
     def load_network(self, save_folder=None):
         self.saver = tf.train.Saver()
