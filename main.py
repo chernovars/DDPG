@@ -314,7 +314,7 @@ class World:
         for i in range(self.TEST):
             state = env.reset()
             for j in range(env.spec.timestep_limit):
-                action = agent.action(state)  # direct action for test
+                action = agent.action(state, is_testing=True)  # direct action for test
                 state, reward, done, _ = env.step(action)
                 total_reward += reward
                 if done:

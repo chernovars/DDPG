@@ -37,19 +37,23 @@ class DDPG:
         self.time_step = 1
         self.sess = tf.InteractiveSession()
 
-        if actor_settings["bn"] == 'True':
+        if actor_settings["bn"] == True:
             from actor_network_bn import ActorNetwork
         else:
             from actor_network import ActorNetwork
 
-        if critic_settings["bn"] == 'True':
+        #from actor_network_layers import ActorNetwork
+
+        if critic_settings["bn"] == True:
             from critic_network_bn import CriticNetwork
         else:
             from critic_network import CriticNetwork
 
         self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, actor_settings, save_folder)
         self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, critic_settings, save_folder)
-        
+        writer = tf.summary.FileWriter("./tf_logs")
+        writer.add_graph(self.sess.graph)
+
         # initialize replay buffer
         self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE, load=True, env_name=self.env_name, save_folder=save_folder)
 
@@ -94,13 +98,13 @@ class DDPG:
         self.actor_network.update_target()
         self.critic_network.update_target()
 
-    def noise_action(self,state):
+    def noise_action(self, state, is_testing=False):
         # Select action a_t according to the current policy and exploration noise
-        action = self.actor_network.action(state)
+        action = self.actor_network.action(state, is_training=(not is_testing))
         return action+self.exploration_noise.noise()
 
-    def action(self,state):
-        action = self.actor_network.action(state)
+    def action(self, state, is_testing=False):
+        action = self.actor_network.action(state, is_training=(not is_testing))
         return action
 
     def perceive(self,state,action,reward,next_state,done):

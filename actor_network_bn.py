@@ -133,7 +133,7 @@ class ActorNetwork:
             self.state_input: state_batch,
         })'''
 
-    def action(self, state):
+    def action(self, state, is_training):
         return self.sess.run(self.action_output[0], feed_dict={
             self.state_input: [state],
             self.is_training: False
