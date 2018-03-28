@@ -12,35 +12,6 @@ import csv
 
 import shutil
 
-
-def generatePlot_delete(x, y=None, title="", labels=None, save_folder=None, show_picture=True, color='b'):
-    plt.figure()
-    if x is None:
-        print("def generatePlot: no x specified")
-        raise AssertionError
-
-    if y:
-        plt.plot(x, y, color)
-    else:
-        plt.plot(x, color)
-
-    if labels is None:
-        plt.xlabel('x label')
-        plt.ylabel('y label')
-    else:
-        plt.xlabel(labels[x])
-        plt.ylabel(labels[y])
-
-    if title:
-        plt.title(title)
-
-    if save_folder:
-        plt.savefig(save_folder)
-
-    if show_picture:
-        plt.show(block=False)
-
-
 def generatePlot(*y, x=None, scatter=None, title="", labels=None, legend=None, save_folder=None, show_picture=True,
                  color='b', x_start=0):
     colors = ['b', 'y', 'r', 'c', 'm', 'g', 'k']
@@ -52,7 +23,6 @@ def generatePlot(*y, x=None, scatter=None, title="", labels=None, legend=None, s
     if min(legths_y) != max(legths_y):
         print("Lenghts of y-lists should be the same")
         raise AssertionError
-
 
     if x is None and len(y) > 0:
         x = list(range(x_start, x_start + len(y[0])))
@@ -98,6 +68,7 @@ class DataCollector:
         self.rewards_list = []
         self.test_list_y = []
         self.test_list_x = []
+        self.start_test_x = 0
 
         self.EMA_reward = 0
         self.EMA_rewards_list = []
@@ -144,6 +115,7 @@ class DataCollector:
 
         with open(file, "r") as f:
             n = f.readline()
+            self.start_test_x = int(n)
             x = f.readlines()
             x = [float(i.strip()) for i in x]
             self.rewards_list = x
@@ -207,13 +179,14 @@ class World:
                      save_folder)
 
         if self.RECORD_VIDEO:
-            monitor = gym.wrappers.Monitor(env_real, 'experiments/' + self.ENV_NAME,
+            monitor = gym.wrappers.Monitor(env_real, save_folder,
                                            (lambda i: (i % self.VIDEO_ON_EPISODE) == 0), resume=True)
             env = monitor
         else:
             env = env_real
         data_collector = DataCollector(save_folder, self.ENV_NAME)
 
+        episode = None
         try:
             for episode in range(self.EPISODES):
                 state = env.reset()
@@ -252,7 +225,7 @@ class World:
                 if self.TIME_LIMIT > 0 and (time.time() - start_time) > self.TIME_LIMIT:
                     self.finish(agent, env, episode, save_folder, data_collector, data_save)
                     return
-            self.finish(agent, env, episode, save_folder, data_collector, data_save)
+            self.finish(agent, env, self.EPISODES, save_folder, data_collector, data_save)
             return
         except KeyboardInterrupt:
             self.finish(agent, env, episode, save_folder, data_collector, data_save)
@@ -320,7 +293,7 @@ class World:
                 if done:
                     break
         ave_reward = total_reward / self.TEST
-        data_collector.test_list_x.append(episode)
+        data_collector.test_list_x.append(episode + data_collector.start_test_x)
         data_collector.test_list_y.append(ave_reward)
         print('episode: ', episode, 'Evaluation Average Reward:', ave_reward)
         if self.UNTIL_SOLVED and ave_reward > self.AVG_REWARD:

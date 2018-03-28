@@ -10,9 +10,9 @@ Mujoco 1.31
 OpenAI Gym 0.5.7
 
 
-Interface:
+### Interface:
 
-automation.py
+##### automation.py
 
 Schedule different experiments to be simulated, specifying settings in xml file.
 
@@ -23,7 +23,7 @@ optional arguments:
   -c, --cont      continue executing scenario by copying tasks results from old scenario c
   -n, --task      execute scenario by copying old task for each new task
 
-client.py 
+##### client.py 
 
 Download results of experiments from remote server 
 
@@ -33,7 +33,7 @@ optional arguments:
   -R, --remove    shoot video for scenario
 
 
-report.py
+##### report.py
 
 
 
@@ -43,7 +43,7 @@ report.py
 
 
 
-References:
+### References:
 
 1 [https://github.com/songrotek/DDPG](https://github.com/songrotek/DDPG)
 
