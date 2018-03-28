@@ -9,22 +9,26 @@ import time
 import ast
 gc.enable()
 
-def scenario(_scenario, old_scenario_folder="", copy_task=None):
+SCENARIOS_FOLDER = "./scenarios/"
+EXPERIMENTS_FOLDER = "./experiments/"
+CREDENTIALS_FOLDER = "./credentials/"
+
+def scenario(scenario, old_scenario_folder="", copy_task=None):
     cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) # before scenario becomes scenario.xml
-    save_folder = "./experiments/" + _scenario + "_" + cur_time
+    save_folder = EXPERIMENTS_FOLDER + scenario + "_" + cur_time
     os.makedirs(save_folder, exist_ok=True)
     ask_for_description(save_folder, cur_time)
-    _scenario = _scenario + ".xml"
-    if not os.path.isfile("./" + _scenario):
+    scenario = SCENARIOS_FOLDER + scenario + ".xml"
+    if not os.path.isfile(scenario):
         print("Create and fill file xml scenario file.")
     else:
-        tree = ET.parse(_scenario)
+        tree = ET.parse(scenario)
         root = tree.getroot()
         i = 0
         with open(save_folder + '/status.txt', 'w') as the_file:
             the_file.write('Executing scenario\n')
         if old_scenario_folder:
-            load_folder = "./experiments/" + old_scenario_folder
+            load_folder = EXPERIMENTS_FOLDER + old_scenario_folder
             if copy_task is None:
                 copy_folders(load_folder, save_folder, "Task")
                 reward_files = get_files_starting_with(load_folder, "Task")
@@ -37,13 +41,11 @@ def scenario(_scenario, old_scenario_folder="", copy_task=None):
                 copy_folder_and_duplicate(load_folder, save_folder, "Task" + str(copy_task), len(list(root)))
                 copy_file_and_duplicate(load_folder, save_folder, "Task" + str(copy_task), len(list(root)))
 
-
-
         for t in root:
             i = i+1
             t_folder = save_folder + "/Task" + str(i)
             os.makedirs(t_folder, exist_ok=True)
-            shutil.copy("./" + _scenario, save_folder)
+            shutil.copy(scenario, save_folder)
             start_time = time.time()
             task(t, t_folder)
             time_took = (time.time() - start_time) / 60
@@ -188,7 +190,7 @@ def ask_for_description(save_folder, time):
         msg = time + "\n" + desc
         with open(save_folder + "/description.txt", "w") as myfile:
             myfile.write(msg)
-        with open("./experiments/journal.txt", "a") as myfile:
+        with open(EXPERIMENTS_FOLDER + "journal.txt", "a") as myfile:
             myfile.write("\n" + msg + "\n")
 
 if __name__ == '__main__':
@@ -205,7 +207,7 @@ if __name__ == '__main__':
 
 
     if args.cont:
-        if os.path.exists("./experiments/" + args.cont):
+        if os.path.exists(EXPERIMENTS_FOLDER + args.cont):
             scenario(args.scenario, old_scenario_folder=args.cont, copy_task=args.task)
         else:
             print("Source directory does not exist. Aborting...")
