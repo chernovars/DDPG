@@ -6,8 +6,10 @@ import shlex
 import subprocess
 from ssh_wrapper import *
 import argparse
+from automation import EXPERIMENTS_FOLDER
 
-
+CREDENTIALS_FOLDER = "./credentials/"
+SERVER_FOLDER = "~/DDPG_working/DDPG/"
 
 def main(_host, _port, _login, _password):
     parser = argparse.ArgumentParser()
@@ -25,7 +27,7 @@ def main(_host, _port, _login, _password):
         ssh_wrap = StdPipeWrapper(ssh)
 
         if args.download:
-            a = _get_list_of_folders_serv(ssh_wrap, "~/DDPG_working/DDPG/experiments")
+            a = _get_list_of_folders_serv(ssh_wrap, os.path.join(SERVER_FOLDER, EXPERIMENTS_FOLDER))
             b = _get_list_of_folders_client("/media/ars/lin_part2/Git2/DDPG/experiments")
             diff = list(set(a) - set(b))
             if args.remove:
@@ -89,10 +91,10 @@ def shell(command):
     time.sleep(2)
 
 if __name__ == '__main__':
-    if not os.path.isfile("./credentials.xml"):
+    if not os.path.isfile(CREDENTIALS_FOLDER + "credentials.xml"):
         print("Create and fill file credentials.xml")
     else:
-        tree = ET.parse('credentials.xml')
+        tree = ET.parse(CREDENTIALS_FOLDER + "credentials.xml")
         root = tree.getroot()
         credentials = {elem.tag:elem.text for elem in root}
         main(credentials['host'], credentials['port'], credentials['login'], credentials['password'])

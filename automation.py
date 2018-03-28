@@ -11,7 +11,6 @@ gc.enable()
 
 SCENARIOS_FOLDER = "./scenarios/"
 EXPERIMENTS_FOLDER = "./experiments/"
-CREDENTIALS_FOLDER = "./credentials/"
 
 def scenario(scenario, old_scenario_folder="", copy_task=None):
     cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) # before scenario becomes scenario.xml
