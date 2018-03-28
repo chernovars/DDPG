@@ -13,7 +13,7 @@ def scenario(_scenario, old_scenario_folder="", copy_task=None):
     cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) # before scenario becomes scenario.xml
     save_folder = "./experiments/" + _scenario + "_" + cur_time
     os.makedirs(save_folder, exist_ok=True)
-
+    ask_for_description(save_folder, cur_time)
     _scenario = _scenario + ".xml"
     if not os.path.isfile("./" + _scenario):
         print("Create and fill file xml scenario file.")
@@ -181,6 +181,15 @@ def fill_default_paramers_for_net(net):
     return net
 #def read_file_to_list:
 
+def ask_for_description(save_folder, time):
+    print("Please write a description for the experiment or press enter otherwise.")
+    desc = input()
+    if desc:
+        msg = time + "\n" + desc
+        with open(save_folder + "/description.txt", "w") as myfile:
+            myfile.write(msg)
+        with open("./experiments/journal.txt", "a") as myfile:
+            myfile.write("\n" + msg + "\n")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
