@@ -1,16 +1,14 @@
 import filter_env
-from ddpg import *
+from ddpg import DDPG
 
+import gym
 import time
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
 import os, errno
-import sys
 import csv
-
-import shutil
 
 def generatePlot(*y, x=None, scatter=None, title="", labels=None, legend=None, save_folder=None, show_picture=True,
                  color='b', x_start=0):
@@ -143,7 +141,7 @@ class DataCollector:
 
 class World:
 
-    def __init__(self, RENDER_STEP=False, RENDER_delay=0, TRAIN=True, NOISE=True):
+    def __init__(self, RENDER_STEP=True, RENDER_delay=0, TRAIN=True, NOISE=True):
         self.ENV_NAME = 'InvertedDoublePendulum-v1'
         self.EPISODES = 100000000  # 100000
         self.TIME_LIMIT = 0
@@ -154,7 +152,7 @@ class World:
         self.TRAIN = TRAIN
         self.NOISE = NOISE
         self.TEST_ON_EPISODE = 50 ################################# TODO: FIX IT !!!!
-        self.VIDEO_ON_EPISODE = 20000  # 4*TEST_ON_EPISODE
+        self.VIDEO_ON_EPISODE =200000  # 4*TEST_ON_EPISODE
         self.SHOW_PLOT = False
         self.RECORD_VIDEO = False
 

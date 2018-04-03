@@ -1,21 +1,16 @@
 import argparse
 import os
 import automation
-import datetime
-import xml.etree.ElementTree as ET
 import main
-import shutil
-import sys
-import time
 import numpy as np
+import utils
 
-
-def processPicture(path):
-    files = automation.get_files_starting_with(path, "Task")
-    files_filtered = list(filter(lambda s: not s.endswith("test"), files))
+def processPicture(full_path, scenario):
+    files = utils.get_files_starting_with(full_path, "Task")
+    files_filtered = list(filter(lambda s: not (s.endswith("test") or s.endswith("png")), files))
     for f in files_filtered:
         dc = main.DataCollector("","")
-        temp_path = path + "/" + f
+        temp_path = full_path + "/" + f
         print(temp_path)
         test = dc.load_test_list(temp_path + "_test")
 
@@ -31,7 +26,7 @@ def processPicture(path):
         ema = dc.listToEMA(info)[-last_points_to_show:]
         info = info[-last_points_to_show:]
 
-        title = args.scenario + " " + f
+        title = scenario + " " + f
         labels = ["episodes", "rewards"]
         legend = ["Reward on noise", "EMA"]
         main.generatePlot(info, ema, x_start=test_points_x_start, scatter=test, title=title, labels=labels, legend=legend, save_folder=temp_path + ".png")
@@ -59,6 +54,7 @@ if __name__ == '__main__':
     temp_path = ""
 
     if args.scenario: # If path to scenario experiments folder was supplied
+        scenario = args.scenario
         if os.path.exists(path + args.scenario):
             temp_path = path + args.scenario
         else:
@@ -76,9 +72,9 @@ if __name__ == '__main__':
     elif args.test:
         automation.demo(temp_path, type="test")
     elif args.picture:
-        processPicture(temp_path)
+        processPicture(temp_path, scenario)
     elif args.report:
         automation.demo(temp_path, type="video")
         automation.demo(temp_path, type="test")
-        processPicture(temp_path)
+        processPicture(temp_path, scenario)
 

@@ -6,13 +6,18 @@ import xml.etree.ElementTree as ET
 import main
 import shutil
 import time
-import ast
+import traceback
+import report
+
+from utils import *
+
+
 gc.enable()
 
 SCENARIOS_FOLDER = "./scenarios/"
 EXPERIMENTS_FOLDER = "./experiments/"
 
-def scenario(scenario, old_scenario_folder="", copy_task=None):
+def scenario(scenario, old_scenario_folder="", copy_task=None, plot=False):
     cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) # before scenario becomes scenario.xml
     save_folder = EXPERIMENTS_FOLDER + scenario + "_" + cur_time
     os.makedirs(save_folder, exist_ok=True)
@@ -50,6 +55,8 @@ def scenario(scenario, old_scenario_folder="", copy_task=None):
             time_took = (time.time() - start_time) / 60
             with open(save_folder + '/status.txt', 'a') as the_file:
                 the_file.write(str(i)+ " " + str(time_took) + ' m\n')
+        if plot:
+            report.processPicture(save_folder, scenario + "_" + cur_time)
         with open(save_folder + '/status.txt', 'a') as the_file:
             the_file.write('Finished\n')
 
@@ -60,7 +67,7 @@ def demo(old_scenario_folder, type=""):
     start = "scenario"
     scenario = max(filter(lambda k: k.startswith(start), lst)) # Find scenario file to get the settings
 
-    tree = ET.parse(scenario)
+    tree = ET.parse(os.path.join(SCENARIOS_FOLDER, scenario))
     root = tree.getroot()
     i = 0
     for t in root:
@@ -94,11 +101,11 @@ def task(_task, save_folder, demo=False, demo_type=None):
 
 
         rl_world.ACTOR_SETTINGS = fill_default_paramers_for_net(strdict_to_numdict(el_actor.attrib))
+        rl_world.CRITIC_SETTINGS = fill_default_paramers_for_net(strdict_to_numdict(el_critic.attrib))
 
         rl_world.ACTOR_SETTINGS["layers"] = []
         for child in el_actor:
             rl_world.ACTOR_SETTINGS["layers"].append(int(child.text))
-        rl_world.CRITIC_SETTINGS = el_critic.attrib
         rl_world.CRITIC_SETTINGS["layers"] = []
         for child in el_critic:
             rl_world.CRITIC_SETTINGS["layers"].append(int(child.text))
@@ -132,55 +139,11 @@ def task(_task, save_folder, demo=False, demo_type=None):
             rl_world.main(save_folder, data_save=demo)
         except Exception as e:
             print(e)
+            traceback.print_exc()
             with open(save_folder + '/exception.txt', 'a') as the_file:
                 the_file.write('Exception '+str(e)+'\n')
+            exit(1)
 
-def copy_folders(src, dst, beginning_of_name):
-    l = get_folders_starting_with(src, beginning_of_name)
-    for f in l:
-        shutil.copytree(src + "/" + f, dst + "/" + f)
-
-def copy_folder_and_duplicate(src, dst, beginning_of_name, duplicates=1):
-    l = get_folders_starting_with(src, beginning_of_name)[0]
-    for i in range(duplicates):
-        shutil.copytree(src + "/" + l, dst + "/" + "Task" + str(i+1))
-
-def copy_file_and_duplicate(src, dst, beginning_of_name, duplicates=1):
-    lst = get_files_starting_with(src, beginning_of_name)
-    for l in lst:
-        for i in range(duplicates):
-            shutil.copy(src + "/" + l, dst + "/" + l.replace(beginning_of_name, "Task" + str(i+1)))
-
-
-def get_folders_starting_with(src, beginning_of_name):
-    res = []
-    for f in os.listdir(src + "/"):
-        if f.startswith(beginning_of_name) and os.path.isdir(src + "/" + f):
-            res.append(f)
-    return res
-
-def get_files_starting_with(src, beginning_of_name):
-    res = []
-    for f in os.listdir(src + "/"):
-        if f.startswith(beginning_of_name) and os.path.isfile(src + "/" + f):
-            res.append(f)
-    return res
-
-def strdict_to_numdict(d):
-    res_dict = {}
-    for k in d:
-        res_dict[k] = converter(d[k])
-    return res_dict
-
-def converter(i):
-    try:
-        return ast.literal_eval(i)
-    except ValueError:
-        return i
-
-def fill_default_paramers_for_net(net):
-    return net
-#def read_file_to_list:
 
 def ask_for_description(save_folder, time):
     print("Please write a description for the experiment or press enter otherwise.")
@@ -202,16 +165,18 @@ if __name__ == '__main__':
     parser.add_argument("-n", "--task", type=int,
                         help="execute scenario by copying old task for each new task")
 
+    parser.add_argument("-p", "--picture", action="store_true", help="generate plot after scenario executed")
+
     args = parser.parse_args()
 
 
     if args.cont:
         if os.path.exists(EXPERIMENTS_FOLDER + args.cont):
-            scenario(args.scenario, old_scenario_folder=args.cont, copy_task=args.task)
+            scenario(args.scenario, old_scenario_folder=args.cont, copy_task=args.task, plot=args.picture)
         else:
             print("Source directory does not exist. Aborting...")
             exit(1)
 
     else:
-        scenario(args.scenario)
+        scenario(args.scenario, plot=args.picture)
         pass

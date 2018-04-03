@@ -3,6 +3,8 @@ import tensorflow as tf
 import numpy as np
 import math
 
+#Deprecation
+
 class CriticNetwork:
     """docstring for CriticNetwork"""
 
@@ -156,9 +158,9 @@ class CriticNetwork:
 
     def _get_path(self, save_folder):
         if save_folder is not None:
-            path = save_folder + '/saved_critic_networks/'
+            path = save_folder + '/saved_' + self.name + '_networks/'
         elif self.save_folder is not None:
-            path = self.save_folder + '/saved_critic_networks/'
+            path = self.save_folder + '/saved_' + self.name + '_networks/'
         else:
             path = "experiments/" + self.env_name + "/saved_critic_networks/"
         return path

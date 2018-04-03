@@ -3,12 +3,12 @@
 # Author: Flood Sung, Arseniy Chernov
 # Date: 2017.11.29
 # -----------------------------------
-import gym
 import tensorflow as tf
 import numpy as np
 from ou_noise import OUNoise
 from replay_buffer import ReplayBuffer
-import time
+from utils import transfer_parameter
+
 # Hyper Parameters:
 
 REPLAY_BUFFER_SIZE = 1000000
@@ -30,6 +30,8 @@ class DDPG:
         self.env_name = env_name
         self.environment = env
         self.NOISE = noise
+        self.BATCH_SIZE = transfer_parameter(actor_settings, "batch", BATCH_SIZE)
+        self.GAMMA = transfer_parameter(actor_settings, "gamma", GAMMA)
         # Randomly initialize actor network and critic network
         # with both their target networks
         self.state_dim = env.observation_space.shape[0] #17
@@ -37,17 +39,37 @@ class DDPG:
         self.time_step = 1
         self.sess = tf.InteractiveSession()
 
-        if actor_settings["bn"] == True:
-            from actor_network_bn import ActorNetwork
-        else:
-            from actor_network import ActorNetwork
+        use_new_actor = transfer_parameter(actor_settings, "new_actor", False)
+        use_new_critic = transfer_parameter(critic_settings, "new_critic", 0)
 
-        #from actor_network_layers import ActorNetwork
-
-        if critic_settings["bn"] == True:
-            from critic_network_bn import CriticNetwork
+        if use_new_actor:
+            from actor_network_layers import ActorNetwork
         else:
+            if actor_settings["bn"] == True:
+                from actor_network_bn import ActorNetwork
+            else:
+                from actor_network import ActorNetwork
+
+        '''if use_new_critic:
+            from critic_network_3 import CriticNetwork
+        else:
+            if critic_settings["bn"] == True:
+                from critic_network_bn import CriticNetwork
+            else:
+                from critic_network import CriticNetwork'''
+        if use_new_critic == 1:
             from critic_network import CriticNetwork
+        elif use_new_critic == 2:
+            from critic_network_layers import CriticNetwork
+        elif use_new_critic == 3:
+            from critic_network_3 import CriticNetwork
+        elif use_new_critic == 4:
+            from critic_network_4 import CriticNetwork
+        elif use_new_critic == 5:
+            from critic_network_5_original import CriticNetwork
+        else:
+            print("CRITIC CHOICE ERROR")
+
 
         self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, actor_settings, save_folder)
         self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, critic_settings, save_folder)
@@ -64,7 +86,7 @@ class DDPG:
         #print("train step",self.time_step)
         self.time_step += 1
         # Sample a random minibatch of N transitions from replay buffer
-        minibatch = self.replay_buffer.get_batch(BATCH_SIZE)
+        minibatch = self.replay_buffer.get_batch(self.BATCH_SIZE)
         state_batch = np.asarray([data[0] for data in minibatch])
         action_batch = np.asarray([data[1] for data in minibatch])
         reward_batch = np.asarray([data[2] for data in minibatch])
@@ -76,20 +98,20 @@ class DDPG:
 
         # Calculate y_batch
         
-        next_action_batch = self.actor_network.target_actions(next_state_batch)
+        next_action_batch = self.actor_network.get_t_output_batch(next_state_batch)
         q_target_batch = self.critic_network.target_q(next_state_batch,next_action_batch)
         y_batch = []  
         for i in range(len(minibatch)): 
             if done_batch[i]:
                 y_batch.append(reward_batch[i])
             else :
-                y_batch.append(reward_batch[i] + GAMMA * q_target_batch[i])
-        y_batch = np.resize(y_batch,[BATCH_SIZE,1])
+                y_batch.append(reward_batch[i] + self.GAMMA * q_target_batch[i])
+        y_batch = np.resize(y_batch,[self.BATCH_SIZE,1])
         # Update critic by minimizing the loss L
         self.critic_network.train(y_batch,state_batch,action_batch)
 
         # Update the actor policy using the sampled gradient:
-        action_batch_for_gradients = self.actor_network.actions(state_batch)
+        action_batch_for_gradients = self.actor_network.get_output_batch(state_batch)
         q_gradient_batch = self.critic_network.gradients(state_batch,action_batch_for_gradients)
 
         self.actor_network.train(q_gradient_batch,state_batch)
@@ -100,11 +122,11 @@ class DDPG:
 
     def noise_action(self, state, is_testing=False):
         # Select action a_t according to the current policy and exploration noise
-        action = self.actor_network.action(state, is_training=(not is_testing))
+        action = self.actor_network.get_output(state, is_training=(not is_testing))
         return action+self.exploration_noise.noise()
 
     def action(self, state, is_testing=False):
-        action = self.actor_network.action(state, is_training=(not is_testing))
+        action = self.actor_network.get_output(state, is_training=(not is_testing))
         return action
 
     def perceive(self,state,action,reward,next_state,done):

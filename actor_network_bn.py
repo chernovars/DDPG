@@ -3,7 +3,7 @@ from tensorflow.contrib.layers.python.layers import batch_norm as batch_norm
 import numpy as np
 import math
 
-
+#Deprecation
 
 class ActorNetwork:
     """docstring for ActorNetwork"""
@@ -117,7 +117,7 @@ class ActorNetwork:
             self.is_training: True
         })
 
-    def actions(self, state_batch):
+    def get_output_batch(self, state_batch):
         return self.sess.run(self.action_output[0], feed_dict={
             self.state_input: state_batch,
             self.is_training: False
@@ -127,19 +127,13 @@ class ActorNetwork:
         scaling_factor = tf.constant(self.actor_settings["decay"])
         self.decay = [tf.scalar_mul(scaling_factor, param) for param in net]
 
-
-    '''def weights_decay(self, weights):
-        return self.sess.run(self.decay, feed_dict={
-            self.state_input: state_batch,
-        })'''
-
-    def action(self, state, is_training):
+    def get_output(self, state, is_training):
         return self.sess.run(self.action_output[0], feed_dict={
             self.state_input: [state],
             self.is_training: False
         })[0]
 
-    def target_actions(self, state_batch):
+    def get_t_output_batch(self, state_batch):
         return self.sess.run(self.target_action_output, feed_dict={
             self.target_state_input: state_batch,
             self.target_is_training: True
