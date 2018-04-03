@@ -6,7 +6,9 @@ import os, errno
 #Deprecation
 
 class CriticNetwork:
-    """docstring for CriticNetwork"""
+    """docstring for CriticNetwork
+        original
+    """
 
     def __init__(self, sess, state_dim, action_dim, env_name, critic_settings, save_folder):
         if len(critic_settings["layers"]) == 2:

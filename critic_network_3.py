@@ -3,7 +3,15 @@ from utils import transfer_parameter
 import math
 
 class CriticNetwork(Network):
-    """docstring for CriticNetwork"""
+    """docstring for CriticNetwork
+        Critic3
+        Uses tf.Variables in a loop - parametrized (bn, layers num)
+        Also try to reduce code duplications by having separate network class
+        Issue:
+        has 3 sets of variables original net, ema, and target
+
+
+    """
 
     def __init__(self, sess, state_dim, action_dim, env_name, critic_settings, save_folder):
         print('Running new critic')

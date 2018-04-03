@@ -3,7 +3,12 @@ from utils import transfer_parameter
 import math
 
 class CriticNetwork(Network):
-    """docstring for CriticNetwork"""
+    """docstring for CriticNetwork
+
+        Critic4
+
+        Uses tf.variables in a function, also variables in the target network are EMA of original net
+    """
 
     def __init__(self, sess, state_dim, action_dim, env_name, critic_settings, save_folder):
         print('Running new critic')

@@ -9,6 +9,10 @@ class CriticNetwork(Network):
     """docstring for CriticNetwork
 
         оригинальный critic поэтапно морфируемый
+
+        всключает в себя create network из критика 4
+
+        3 сета переменнызх
     """
 
     def __init__(self, sess, state_dim, action_dim, env_name, critic_settings, save_folder):
