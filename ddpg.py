@@ -67,6 +67,12 @@ class DDPG:
             from critic_network_4 import CriticNetwork
         elif use_new_critic == 5:
             from critic_network_5_original import CriticNetwork
+        elif use_new_critic == 6:
+            from critic_network_6_original import CriticNetwork
+        elif use_new_critic == 7:
+            from critic_network_7_without_copy import CriticNetwork
+        elif use_new_critic == 8:
+            from critic_network_8_4_with_copy import CriticNetwork
         else:
             print("CRITIC CHOICE ERROR")
 

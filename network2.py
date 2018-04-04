@@ -7,17 +7,19 @@ def get_net_variables(name):
     res = {}
     for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
         if var.name.startswith(name):
-            short_name = var.name.split("/")[-1]
-            short_name = short_name.split(":")[0]
-            res[short_name] = var
+            short_name = var.name.split("/")
+            for s in short_name:
+                if "kernel" in s or "bias" in s:
+                    s = s.split(":")[0]
+                    res[s] = var
     return res
 
 def get_kernels(name):
-    vars = get_net_variables(name)
     res = []
-    for k in vars:
-        if "kernel" in k:
-            res.append(vars[k])
+    vars = get_net_variables(name)
+    for v in vars:
+        if "kernel" in v:
+            res.append(vars[v])
     return res
 
 class Network:
