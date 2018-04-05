@@ -3,12 +3,23 @@ import math
 import tensorflow as tf
 from utils import transfer_parameter
 
-def get_net_variables(name):
+def get_net_variables(scope):
     res = {}
-    name_len = len(name)
     for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
-        if var.name.startswith(name):
-            res[var.name[name_len:]] = var
+        if var.name.startswith(scope):
+            short_name = var.name.split("/")
+            for s in short_name:
+                if "kernel" in s or "bias" in s:
+                    s = s.split(":")[0]
+                    res[s] = var
+    return res
+
+def get_params(net_scope, param_name):
+    res = []
+    vars = get_net_variables(net_scope)
+    for v in vars:
+        if param_name in v:
+            res.append(vars[v])
     return res
 
 class Network:
@@ -42,59 +53,75 @@ class Network:
     def post_init(self):
         with tf.variable_scope("init_" + self.name):
             self.sess.run(tf.global_variables_initializer())
-        self.sess.run(self.copy_ops)
         self.update_target()
         self.load_network()
 
-    def create_network(self, input_dim, output_dim, settings, scope):
-        with tf.variable_scope(scope):
-            input = tf.placeholder("float", [None, input_dim], name="input")
-            is_training = tf.placeholder(tf.bool, name="bn_is_training")
+    def create_dense_layer(self, input, l_scope, shape, f, is_training=True, parameters=None, param_name="", use_bias=True, activate=True):
+        with tf.variable_scope(l_scope):
+            if parameters is None:
+                W = self.variable(shape, f, name='kernel_' + param_name)
+            else:
+                W = parameters['kernel_' + param_name]
+            if use_bias:
+                if parameters is None:
+                    b = self.variable([shape[1]], f, name='bias_' + param_name)
+                else:
+                    b = parameters['bias_' + param_name]
 
-            layer = tf.layers.dense(input, units=settings["layers"][0], name="input_layer")
+            _layer = tf.matmul(input, W)
+            if use_bias:
+                _layer = _layer + b
             if self.BATCH_NORM:
-                layer = tf.layers.batch_normalization(layer, training=is_training, name="bn_input_layer")
-            activation = tf.nn.relu(layer, name="activation_input")
+                _layer = tf.layers.batch_normalization(_layer, training=is_training, name=l_scope + "bn")
+            if activate:
+                _layer = tf.nn.relu(_layer, name='act_'+param_name)
+        return _layer
 
+
+    def create_network(self, input_dim, output_dim, settings, scope, parameters=None):
+        with tf.variable_scope(scope):
+            state_input = tf.placeholder("float", [None, input_dim], name='state_input')
+            is_training = tf.placeholder(tf.bool, name='bn_is_training')
+            layers = settings["layers"]
+
+            # state input layer
+            layer = self.create_dense_layer(state_input, l_scope="h_layer_1", shape=[input_dim, layers[0]],
+                                       is_training=is_training, parameters=parameters, f=input_dim, param_name='1')
+            # hidden layers
             for i in range(1, len(settings["layers"])):
-                l_name = "h_layer_" + str(i + 1)
-                layer = tf.layers.dense(activation, units=settings["layers"][i], name=l_name)
-                if self.BATCH_NORM:
-                    layer = tf.layers.batch_normalization(layer, training=is_training, name="bn_"+l_name)
-                activation = tf.nn.relu(layer, name="act_"+l_name)
+                num = str(i + 1)
+                layer = self.create_dense_layer(layer, l_scope="h_layer_" + num, shape=[layers[i - 1], layers[i]],
+                                                is_training=is_training, parameters=parameters, f=layers[i - 1],
+                                                param_name=num)
+            # output layer
+            with tf.variable_scope("output_layer"):
+                prev_l_dim = layers[len(layers) - 1]
+                if parameters is None:
+                    W_out = tf.Variable(tf.random_uniform([prev_l_dim, output_dim], -3e-3, 3e-3), name='kernel_out')
+                    b_out = tf.Variable(tf.random_uniform([output_dim], -3e-3, 3e-3), name='bias_out')
+                else:
+                    W_out = parameters['kernel_out']
+                    b_out = parameters['bias_out']
+                layer = tf.matmul(layer, W_out) + b_out
+            output = tf.nn.tanh(layer, name='tanh_output')
 
-            layer = tf.layers.dense(activation, units=output_dim, name="output_layer")
-            output = tf.nn.tanh(layer, name='output_activation')
-            W, b = self.get_W_b(scope=scope)
-
-        return input, output, is_training, W, b
+        return state_input, output, is_training
 
     def create_target_network(self, *args):
         if len(args) != 5:
             raise TypeError
 
         input_dim, output_dim, settings, net_params, old_scope = args
-
-        self.t_input, self.t_output, self.t_is_training, _, _ \
-            = self.create_network(input_dim, output_dim, settings, scope="t_" + old_scope)
-
         self.create_target_update(net_params)
+
+        self.t_input, self.t_output, self.t_is_training, \
+            = self.create_network(input_dim, output_dim, settings, scope="t_" + old_scope, parameters=self.ema_net_params)
 
     def create_target_update(self, net_params):
         with tf.variable_scope(self.name + "_target_update"):
-            self.t_net_params = get_net_variables("t_" + self.name)
-            # op for copy weights from actor to target actor
-            self.copy_ops = [self.t_net_params[key].assign(net_params[key]) for key in net_params]
-
             ema = tf.train.ExponentialMovingAverage(decay=1 - self.TAU)
-
-            # op for calculating ema
-            a = list(net_params.values())
-            self.ema_update = ema.apply(a)
-
+            self.target_update = ema.apply(list(net_params.values()))
             self.ema_net_params = {key: ema.average(net_params[key]) for key in net_params}
-            # copy weights from running averages to target actor
-            self.target_update = [self.t_net_params[key].assign(self.ema_net_params[key]) for key in self.ema_net_params]
 
     def update_target(self):
         self.sess.run(self.target_update)
@@ -124,11 +151,6 @@ class Network:
         else:
             return tf.Variable(tf.random_uniform(shape, -1 / math.sqrt(f), 1 / math.sqrt(f)))
 
-    '''def get_t_output_batch(self, state_batch):
-        return self.sess.run(self.t_output, feed_dict={
-            self.t_input: state_batch
-        })'''
-
     def load_network(self, save_folder=None):
         with tf.variable_scope("save_" + self.name):
             self.saver = tf.train.Saver()
@@ -154,15 +176,4 @@ class Network:
         else:
             path = first_folder
         return path
-
-    def get_W_b(self, scope):
-        W = []
-        b = []
-        for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope):
-            if "kernel" in var.name:
-                W.append(var)
-            if "bias" in var.name:
-                b.append(var)
-        return W, b
-
 

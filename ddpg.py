@@ -21,7 +21,6 @@ GAMMA = 0.99
 
 SAVE_STEP_THRESHOLD = 3000
 
-
 class DDPG:
     """docstring for DDPG"""
     def __init__(self, env, train, noise, env_name, actor_settings, critic_settings, save_folder):
@@ -39,43 +38,24 @@ class DDPG:
         self.time_step = 1
         self.sess = tf.InteractiveSession()
 
-        use_new_actor = transfer_parameter(actor_settings, "new_actor", False)
+        use_new_actor = transfer_parameter(actor_settings, "new_actor", 0)
         use_new_critic = transfer_parameter(critic_settings, "new_critic", 0)
 
-        if use_new_actor:
-            from actor_network_layers import ActorNetwork
+        if use_new_actor == 1:
+            from actor_network_old import ActorNetwork
+        elif use_new_actor == 2:
+            from actor_network_bn_old import ActorNetwork
+        elif use_new_actor == 4:
+            from actor_network import ActorNetwork
         else:
-            if actor_settings["bn"] == True:
-                from actor_network_bn import ActorNetwork
-            else:
-                from actor_network import ActorNetwork
+            print("ACTOR CHOICE ERROR")
 
-        '''if use_new_critic:
-            from critic_network_3 import CriticNetwork
-        else:
-            if critic_settings["bn"] == True:
-                from critic_network_bn import CriticNetwork
-            else:
-                from critic_network import CriticNetwork'''
         if use_new_critic == 1:
-            from critic_network import CriticNetwork
-        elif use_new_critic == 2:
-            from critic_network_layers import CriticNetwork
-        elif use_new_critic == 3:
-            from critic_network_3 import CriticNetwork
-        elif use_new_critic == 4:
-            from critic_network_4 import CriticNetwork
+            from critic_network_old import CriticNetwork
         elif use_new_critic == 5:
-            from critic_network_5_original import CriticNetwork
-        elif use_new_critic == 6:
-            from critic_network_6_original import CriticNetwork
-        elif use_new_critic == 7:
-            from critic_network_7_without_copy import CriticNetwork
-        elif use_new_critic == 8:
-            from critic_network_8_4_with_copy import CriticNetwork
+            from critic_network import CriticNetwork
         else:
             print("CRITIC CHOICE ERROR")
-
 
         self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, actor_settings, save_folder)
         self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, critic_settings, save_folder)
