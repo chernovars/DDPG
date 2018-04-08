@@ -9,7 +9,7 @@ def create_decay_scheme(decay, parameters, scheme="scalar"):
 
         "layer" - [ scalar, num_of_layer(starting from 1) ]
 
-        "input" - [ scalar, num_of_input ]
+        "input" - [ scalar, num_of_input1, num_of_input2 ]
 
         "gradient" - [ scalar1, scalar2, ... ]
 
@@ -44,9 +44,9 @@ def create_decay_scheme(decay, parameters, scheme="scalar"):
             return [param.assign(param * scaling_factor)]
         if scheme == "input":
             param = parameters[0]
-            input_num = decay[1]
             decay_matrix = np.ones(param.get_shape().as_list())
-            decay_matrix[input_num, :] *= decay[0]
+            decay_matrix[decay[1], :] *= decay[0]
+            decay_matrix[decay[2], :] *= decay[0]
             return [param.assign(param * decay_matrix)]
         if scheme == "gradient":
             assert len(decay) == len(parameters)
