@@ -1,6 +1,7 @@
 from network import *
 from utils import transfer_parameter
 from ddpg import BATCH_SIZE
+from decay import *
 
 class ActorNetwork(Network):
     """docstring for CriticNetwork
@@ -14,7 +15,9 @@ class ActorNetwork(Network):
         print('Running new actor')
         Network.__init__(self, sess, state_dim, action_dim, "actor", actor_settings, save_folder)
         self.DECAY = transfer_parameter(actor_settings, "decay", not_found=1.0)
+        self.DECAY_SCHEME = transfer_parameter(actor_settings, "decay_scheme", "not_set")
         self.BATCH_SIZE = transfer_parameter(actor_settings, "batch", BATCH_SIZE)
+
         # create actor network
         self.input, self.output, self.is_training \
             = self.create_network(state_dim, action_dim, actor_settings, self.name)
@@ -32,9 +35,7 @@ class ActorNetwork(Network):
         self.post_init()
 
     def create_decay(self, params):
-        with tf.variable_scope("param_decay"):
-            scaling_factor = tf.constant(self.DECAY)
-            return [param.assign(param * scaling_factor) for param in params]
+        return create_decay_scheme(self.DECAY, params, scheme=self.DECAY_SCHEME)
 
     def create_training_method(self, post_train_ops=[]):
         with tf.variable_scope("actor_train"):
@@ -49,7 +50,7 @@ class ActorNetwork(Network):
                                                                 zip(self.normalized_parameters_gradients, self.net_params.values()))
             self.train_ops = [self.optimizer] + post_train_ops
 
-            if self.DECAY != 1:
+            if self.DECAY_SCHEME is not "not_set":
                 self.train_ops += self.decay_ops
 
     def train(self, q_gradient_batch, state_batch):

@@ -20,7 +20,17 @@ def get_params(net_scope, param_name):
     for v in vars:
         if param_name in v:
             res.append(vars[v])
-    return res
+
+    sorted_res = []
+    for i in range(len(res)-1):
+        for v in res:
+            if str(i+1) in v.name:
+                sorted_res.append(v)
+                break
+    for v in res:
+        if "out" in v.name:
+            sorted_res.append(v)
+    return sorted_res
 
 class Network:
     def __init__(self, sess, input_dim, output_dim, name, settings, save_folder):
@@ -129,7 +139,7 @@ class Network:
     def get_output_batch(self, input_batch):
         return self.sess.run(self.output, feed_dict={
             self.input: input_batch,
-            self.is_training: False
+            self.is_training: True #was False
         })
 
     def get_output(self, input, is_training):
