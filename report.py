@@ -14,22 +14,27 @@ def processPicture(full_path, scenario):
         print(temp_path)
         test = dc.load_test_list(temp_path + "_test")
 
-        test_points_x_start = 0
+        test_points_x_start = 10500
 
         info = dc.load_rewards_list(temp_path)
         last_points_to_show = len(info)
         test_points = len(test[0])
 
-        test[0] = np.array(test[0])[-test_points:] + test_points_x_start
+        test[0] = np.array(test[0])[-test_points:]
         test[1] = np.array(test[1])[-test_points:]
+        test_filtered = list(filter(lambda x: x[0] >= test_points_x_start, zip(test[0], test[1])))
+        test_filtered = [np.array(t) for t in zip(*test_filtered)]
 
         ema = dc.listToEMA(info)[-last_points_to_show:]
         info = info[-last_points_to_show:]
 
+        ema = ema[test_points_x_start:]
+        info = info[test_points_x_start:]
+
         title = scenario + " " + f
         labels = ["episodes", "rewards"]
         legend = ["Reward on noise", "EMA"]
-        main.generatePlot(info, ema, x_start=test_points_x_start, scatter=test, title=title, labels=labels, legend=legend, save_folder=temp_path + ".png")
+        main.generatePlot(info, ema, x_start=test_points_x_start, scatter=test_filtered, title=title, labels=labels, legend=legend, save_folder=temp_path + ".png")
 
 def generateReport():
     print("Report Generated")

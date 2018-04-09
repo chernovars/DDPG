@@ -48,6 +48,12 @@ def create_decay_scheme(decay, parameters, scheme="scalar"):
             decay_matrix[decay[1], :] *= decay[0]
             decay_matrix[decay[2], :] *= decay[0]
             return [param.assign(param * decay_matrix)]
+        if scheme == "output":
+            param = parameters[-1]
+            decay_matrix = np.ones(param.get_shape().as_list())
+            decay_matrix[decay[1], :] *= decay[0]
+            decay_matrix[decay[2], :] *= decay[0]
+            return [param.assign(param * decay_matrix)]
         if scheme == "gradient":
             assert len(decay) == len(parameters)
             return [param.assign(param * tf.constant(d)) for param, d in zip(parameters, decay)]
