@@ -10,51 +10,7 @@ import matplotlib.pyplot as plt
 import os, errno
 import csv
 
-def generatePlot(*y, x=None, scatter=None, title="", labels=None, legend=None, save_folder=None, show_picture=True,
-                 color='b', x_start=0):
-    colors = ['b', 'y', 'r', 'c', 'm', 'g', 'k']
-
-    plt.figure()
-    plot_args = []
-
-    legths_y = [len(i) for i in y]
-    if min(legths_y) != max(legths_y):
-        print("Lenghts of y-lists should be the same")
-        raise AssertionError
-
-    if x is None and len(y) > 0:
-        x = list(range(x_start, x_start + len(y[0])))
-
-    if legend is None or len(legend) != len(y):
-        legend = ["y" + str(y.index(i)) for i in y]
-
-    if len(y) > 1:
-        for i in range(0, len(y)):
-            plt.plot(x, y[i], colors[i % (len(colors))], label=legend[i])
-    elif len(y) == 1:
-        plot_args += [x, y[0], color]
-
-    plt.plot(plot_args)
-
-    if labels is None:
-        plt.xlabel('x label')
-        plt.ylabel('y label')
-    else:
-        plt.xlabel(labels[0])
-        plt.ylabel(labels[1])
-
-    if title:
-        plt.title(title)
-
-    if scatter is not None:
-        plt.scatter(scatter[0], scatter[1], c='r', zorder=100)
-
-    plt.legend()
-    if save_folder:
-        plt.savefig(save_folder)
-
-    if show_picture:
-        plt.show(block=False)
+from utils import generatePlot
 
 
 class DataCollector:
@@ -151,11 +107,12 @@ class World:
         self.RENDER_delay = RENDER_delay  # 0.1
         self.TRAIN = TRAIN
         self.NOISE = NOISE
+        self.NOISE_PERIOD = 100000000
         self.TEST_ON_EPISODE = 50 ################################# TODO: FIX IT !!!!
         self.VIDEO_ON_EPISODE =200000  # 4*TEST_ON_EPISODE
         self.SHOW_PLOT = False
         self.RECORD_VIDEO = False
-
+        self.SAVE = True
         self.UNTIL_SOLVED = False
         self.AVG_REWARD = 0
         self.OVER_LAST = 0
@@ -165,8 +122,6 @@ class World:
 
     def main(self, save_folder, data_save=True):
         # myplot = plot.Plot() # TODO: real-time plotting for state analysys
-        noise_period = 100000000 #100
-        self.NOISE = False
 
         start_time = 0
         if self.TIME_LIMIT > 0:
@@ -217,7 +172,7 @@ class World:
                             self.finish(agent, env, episode, save_folder, data_collector)
                             return
 
-                if (episode % noise_period) == 0 and episode > 0:
+                if (episode % self.NOISE_PERIOD) == 0 and episode > 0:
                     self.NOISE = not self.NOISE
 
                 if self.TIME_LIMIT > 0 and (time.time() - start_time) > self.TIME_LIMIT:

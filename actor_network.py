@@ -39,9 +39,9 @@ class ActorNetwork(Network):
 
     def create_training_method(self, post_train_ops=[]):
         with tf.variable_scope("actor_train"):
-            self.q_gradient_input = tf.placeholder("float", [None, self.output_dim])
+            self.q_gradient_input = tf.placeholder("float", [None, self.output_dim], name='q_gradient_input')
             params = list(self.net_params.values())
-            self.parameters_gradients = tf.gradients(self.output, params, -self.q_gradient_input)
+            self.parameters_gradients = tf.gradients(self.output, params, -self.q_gradient_input, name="sum")
             self.normalized_parameters_gradients = list(
                 map(lambda x: tf.div(x, self.BATCH_SIZE), self.parameters_gradients))
 

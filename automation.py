@@ -17,6 +17,17 @@ gc.enable()
 SCENARIOS_FOLDER = "./scenarios/"
 EXPERIMENTS_FOLDER = "./experiments/"
 
+def __get_tasks_names(tasks):
+    res = []
+    for i, t in enumerate(tasks):
+        executions_num = transfer_parameter(t.attrib, "executions", 1)
+        if executions_num > 1:
+            for j in range(executions_num):
+                res.append(str(i+1) + "_" + str(j+1))
+        else:
+            res.append(str(i+1))
+    return res
+
 def scenario(scenario, old_scenario_folder="", copy_task=None, plot=False):
     cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) # before scenario becomes scenario.xml
     save_folder = EXPERIMENTS_FOLDER + scenario + "_" + cur_time
@@ -27,34 +38,36 @@ def scenario(scenario, old_scenario_folder="", copy_task=None, plot=False):
         print("Create and fill file xml scenario file.")
     else:
         tree = ET.parse(scenario)
-        root = tree.getroot()
-        i = 0
+        tasks = tree.getroot()
+        save_nets = transfer_parameter(tasks.attrib, "save_nets", True)
+        tasks_names = __get_tasks_names(tasks)
         with open(save_folder + '/status.txt', 'w') as the_file:
             the_file.write('Executing scenario\n')
         if old_scenario_folder:
             load_folder = EXPERIMENTS_FOLDER + old_scenario_folder
             if copy_task is None:
-                copy_folders(load_folder, save_folder, "Task")
+                copy_folders(load_folder, save_folder, starts_with="Task")
                 reward_files = get_files_starting_with(load_folder, "Task")
                 for f in reward_files:
-                    src = load_folder + "/" + f
-                    print(src)
-                    print(save_folder)
                     shutil.copy(load_folder + "/" + f, save_folder)
             else:
-                copy_folder_and_duplicate(load_folder, save_folder, "Task" + str(copy_task), len(list(root)))
-                copy_file_and_duplicate(load_folder, save_folder, "Task" + str(copy_task), len(list(root)))
+                copy_folder_and_duplicate(load_folder, save_folder, "Task" + copy_task, tasks_names)
+                copy_file_and_duplicate(load_folder, save_folder, "Task" + copy_task, tasks_names)
 
-        for t in root:
-            i = i+1
-            t_folder = save_folder + "/Task" + str(i)
-            os.makedirs(t_folder, exist_ok=True)
-            shutil.copy(scenario, save_folder)
-            start_time = time.time()
-            task(t, t_folder)
-            time_took = (time.time() - start_time) / 60
-            with open(save_folder + '/status.txt', 'a') as the_file:
-                the_file.write(str(i)+ " " + str(time_took) + ' m\n')
+        counter = 0
+        for i, t in enumerate(tasks):
+            executions = transfer_parameter(t.attrib, "executions", 1)
+            for rep in range(executions):
+                ordinal = tasks_names[counter]
+                counter += 1
+                t_folder = save_folder + "/Task" + ordinal
+                os.makedirs(t_folder, exist_ok=True)
+                shutil.copy(scenario, save_folder)
+                start_time = time.time()
+                task(t, t_folder, save_nets=save_nets)
+                time_took = (time.time() - start_time) / 60
+                with open(save_folder + '/status.txt', 'a') as the_file:
+                    the_file.write(str(i)+ " " + str(time_took) + ' m\n')
         if plot:
             report.processPicture(save_folder, scenario + "_" + cur_time)
         with open(save_folder + '/status.txt', 'a') as the_file:
@@ -78,14 +91,22 @@ def demo(old_scenario_folder, type=""):
 
         task(t, t_folder, demo=True, demo_type=type)
 
-def task(_task, save_folder, demo=False, demo_type=None):
+def task(_task, save_folder, demo=False, demo_type=None, save_nets=True):
     if demo:
         if demo_type == "video":
             rl_world = main.World(RENDER_STEP=True, RENDER_delay=0.0002, TRAIN=False, NOISE=False)
         elif demo_type == "test":
             rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=False, NOISE=False)
+        else:
+            print("Demo type undefined")
+            exit(1)
     else:
-        rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=True, NOISE=True)
+        noise = transfer_parameter(_task[0].attrib, "noise", not_found=True)
+        rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=True, NOISE=noise)
+        if noise:
+            noise_switching_period = transfer_parameter(_task[0].attrib, "noise_switch", not_found=False)
+            if noise_switching_period is not False:
+                rl_world.NOISE_PERIOD = noise_switching_period
 
     if _task.attrib["type"] == "simulation":
         os.makedirs(save_folder + "/saved_actor_networks", exist_ok=True)
@@ -94,7 +115,7 @@ def task(_task, save_folder, demo=False, demo_type=None):
         rl_world.ENV_NAME = _task[0].attrib["name"]
         rl_world.TEST = 10
         rl_world.TEST_ON_EPISODE = 100
-
+        rl_world.SAVE = save_nets
         el_actor = _task[0][0]
         el_critic = _task[0][1]
         el_end_criteria = _task[0][2]
@@ -162,7 +183,7 @@ if __name__ == '__main__':
     parser.add_argument("-c", "--cont", type=str,
                         help="execute scenario by copying tasks results from old scenario c")
 
-    parser.add_argument("-n", "--task", type=int,
+    parser.add_argument("-n", "--task", type=str,
                         help="execute scenario by copying old task for each new task")
 
     parser.add_argument("-p", "--picture", action="store_true", help="generate plot after scenario executed")
