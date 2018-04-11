@@ -157,7 +157,7 @@ def task(_task, save_folder, demo=False, demo_type=None, save_nets=True):
                 print("Wrong demo type. Exiting...")
                 exit(1)
         try:
-            rl_world.main(save_folder, data_save=demo)
+            rl_world.main(save_folder, data_save=(not demo))
         except Exception as e:
             print(e)
             traceback.print_exc()

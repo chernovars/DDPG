@@ -169,7 +169,7 @@ class World:
                     if agent.TRAIN:
                         # agent.save(episode, save_folder)
                         if self._testing(env, agent, episode, data_collector, self.ENV_NAME):
-                            self.finish(agent, env, episode, save_folder, data_collector)
+                            self.finish(agent, env, episode, save_folder, data_collector, data_save)
                             return
 
                 if (episode % self.NOISE_PERIOD) == 0 and episode > 0:
@@ -184,9 +184,13 @@ class World:
             self.finish(agent, env, episode, save_folder, data_collector, data_save)
             return
 
-    def finish(self, agent, env, episode, save_folder, data_collector, data_save=False):
-        if not data_save:
-            agent.save(episode, save_folder)
+    def finish(self, agent, env, episode, save_folder, data_collector, data_save=True):
+        if data_save:
+            if self.SAVE:
+                agent.save(episode, save_folder)
+            else:
+                agent.replay_buffer.erase()
+                agent.replay_buffer.save_buffer(save_folder)
             data_collector.save_rewards_list()
             data_collector.save_test_list()
         if self.RECORD_VIDEO:
