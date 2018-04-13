@@ -6,8 +6,9 @@ Fork of DDPG from songrotek, with added functionality for remote execution on se
 
 
 Requirements:
-Mujoco 1.31
-OpenAI Gym 0.5.7
+*Mujoco 1.31
+*OpenAI Gym 0.9.3
+*Myjoco_py 0.5.7
 
 
 ### Interface:
