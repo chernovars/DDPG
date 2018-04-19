@@ -11,8 +11,8 @@ from utils import transfer_parameter
 
 # Hyper Parameters:
 
-REPLAY_BUFFER_SIZE = 1000000
-REPLAY_START_SIZE = 10000
+REPLAY_BUFFER_SIZE = 20000
+REPLAY_START_SIZE = 1000
 BATCH_SIZE = 64
 GAMMA = 0.99
 
@@ -23,7 +23,8 @@ SAVE_STEP_THRESHOLD = 3000
 
 class DDPG:
     """docstring for DDPG"""
-    def __init__(self, env, train, noise, env_name, actor_settings, critic_settings, save_folder):
+    def __init__(self, env, train, noise, env_name, actor_settings, critic_settings,
+                                                  save_folder, observations="states"):
         self.TRAIN = train
         self.name = 'DDPG' # name for uploading results
         self.env_name = env_name
@@ -31,12 +32,24 @@ class DDPG:
         self.NOISE = noise
         self.BATCH_SIZE = transfer_parameter(actor_settings, "batch", BATCH_SIZE)
         self.GAMMA = transfer_parameter(actor_settings, "gamma", GAMMA)
+
         # Randomly initialize actor network and critic network
         # with both their target networks
-        self.state_dim = env.observation_space.shape[0] #17
+
+        if observations == "pixels":
+            self.state_dim = (64,64,3)
+        else:
+            self.state_dim = env.observation_space.shape[0]
         self.action_dim = env.action_space.shape[0] #6
         self.time_step = 1
-        self.sess = tf.InteractiveSession()
+
+        SHARE_GPU_MEMORY = False
+
+        if SHARE_GPU_MEMORY:
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1)
+            self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+        else:
+            self.sess = tf.Session()
 
         use_new_actor = transfer_parameter(actor_settings, "new_actor", 0)
         use_new_critic = transfer_parameter(critic_settings, "new_critic", 0)
@@ -57,8 +70,10 @@ class DDPG:
         else:
             print("CRITIC CHOICE ERROR")
 
-        self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, actor_settings, save_folder)
-        self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, critic_settings, save_folder)
+        self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, actor_settings, \
+                                          save_folder, observations=observations)
+        self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, critic_settings, \
+                                    save_folder, observations=observations)
         writer = tf.summary.FileWriter("./tf_logs")
         writer.add_graph(self.sess.graph)
 
@@ -73,7 +88,7 @@ class DDPG:
         self.time_step += 1
         # Sample a random minibatch of N transitions from replay buffer
         minibatch = self.replay_buffer.get_batch(self.BATCH_SIZE)
-        state_batch = np.asarray([data[0] for data in minibatch])
+        state_batch = np.array([data[0] for data in minibatch])
         action_batch = np.asarray([data[1] for data in minibatch])
         reward_batch = np.asarray([data[2] for data in minibatch])
         next_state_batch = np.asarray([data[3] for data in minibatch])

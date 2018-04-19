@@ -78,31 +78,70 @@ class Network:
                 else:
                     b = parameters['bias_' + param_name]
 
-            _layer = tf.matmul(input, W)
+            layer = tf.matmul(input, W)
             if use_bias:
-                _layer = _layer + b
+                layer = layer + b
             if self.BATCH_NORM:
-                _layer = tf.layers.batch_normalization(_layer, training=is_training, name=l_scope + "bn")
+                layer = tf.layers.batch_normalization(layer, training=is_training, name=l_scope + "bn")
             if activate:
-                _layer = tf.nn.relu(_layer, name='act_'+param_name)
-        return _layer
+                layer = tf.nn.relu(layer, name='act_'+param_name)
+        return layer
 
+    def create_conv_layer(self, input, l_scope, shape, f, layer_settings, activate=True, parameters=None, param_name=""):
+        kernels = shape[1]
+        k = layer_settings["kernel_size"]
+        p = layer_settings["padding"].upper()
+        s = layer_settings["stride"]
+        s = [1, s, s, 1]
+        f = input.get_shape().as_list()[1] * input.get_shape().as_list()[2]
+        with tf.variable_scope(l_scope):
+            if parameters is None:
+                W_shape = [k, k, input.get_shape().as_list()[-1], kernels]
+                W = self.variable(W_shape, f, name='kernel_' + param_name)
+                b = self.variable([kernels], f, name='bias_' + param_name)
+            else:
+                W = parameters['kernel_' + param_name]
+                b = parameters['bias_' + param_name]
+
+            layer = tf.nn.conv2d(input, W, s, p, name="conv_"+l_scope) + b
+            if activate:
+                layer = tf.nn.relu(layer, name='act_'+param_name)
+        return layer
+
+
+    def create_layer(self, input, l_scope, shape, f, layer_settings, is_training=True, parameters=None, param_name="",
+                     use_bias=True, activate=True):
+        if layer_settings["type"] == "fc":
+            input_shape = input.get_shape().as_list()
+            if len(input_shape) == 4:
+                new_shape = input_shape[1] * input_shape[2] * input_shape[3]
+                input = tf.reshape(input, [-1, new_shape])
+                shape[0] = new_shape
+            return self.create_dense_layer(input, l_scope, shape, f, is_training=is_training, parameters=parameters,
+                                           param_name=param_name, use_bias=use_bias, activate=activate)
+        if layer_settings["type"] == "conv":
+            return self.create_conv_layer(input, l_scope, shape, f, layer_settings, parameters=parameters,
+                                                                param_name=param_name, activate=activate)
 
     def create_network(self, input_dim, output_dim, settings, scope, parameters=None):
         with tf.variable_scope(scope):
-            state_input = tf.placeholder("float", [None, input_dim], name='state_input')
+            if type(input_dim) is tuple:
+                state_input = tf.placeholder(tf.float32, shape=[None, *input_dim], name='pixel_input')
+            else:
+                state_input = tf.placeholder("float", [None, input_dim], name='state_input')
             is_training = tf.placeholder(tf.bool, name='bn_is_training')
             layers = settings["layers"]
+            ls = settings["layers_settings"]
 
             # state input layer
-            layer = self.create_dense_layer(state_input, l_scope="h_layer_1", shape=[input_dim, layers[0]],
-                                       is_training=is_training, parameters=parameters, f=input_dim, param_name='1')
+            layer = self.create_layer(state_input, "h_layer_1", [input_dim, layers[0]], f=input_dim,
+                                      layer_settings=ls[0], is_training=is_training, parameters=parameters,  param_name='1')
             # hidden layers
             for i in range(1, len(settings["layers"])):
                 num = str(i + 1)
-                layer = self.create_dense_layer(layer, l_scope="h_layer_" + num, shape=[layers[i - 1], layers[i]],
+                layer = self.create_layer(layer, l_scope="h_layer_" + num, shape=[layers[i - 1], layers[i]],
                                                 is_training=is_training, parameters=parameters, f=layers[i - 1],
-                                                param_name=num)
+                                                param_name=num, layer_settings=ls[i])
             # output layer
             with tf.variable_scope("output_layer"):
                 prev_l_dim = layers[len(layers) - 1]

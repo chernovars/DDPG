@@ -11,10 +11,11 @@ class CriticNetwork(Network):
         Almost the same as critic 4, but has create net funcrion in network2 file
      """
 
-    def __init__(self, sess, state_dim, action_dim, env_name, critic_settings, save_folder):
+    def __init__(self, sess, state_dim, action_dim, env_name, critic_settings, save_folder, observations="states"):
         print('Running new critic')
         Network.__init__(self, sess, state_dim, action_dim, "critic", critic_settings, save_folder)
         self.L2 = float(critic_settings["l2"]) #0.01
+        self.OBSERVATIONS = observations
 
         # create q network
         self.input, self.actions_input, self.output, self.is_training \
@@ -35,10 +36,14 @@ class CriticNetwork(Network):
             make_new_var = True
 
         with tf.variable_scope(scope):
-            state_input = tf.placeholder("float", [None, input_dim], name='state_input')
+            if type(input_dim) is tuple:
+                state_input = tf.placeholder(tf.float32, shape=[None, *input_dim], name='pixel_input')
+            else:
+                state_input = tf.placeholder("float", [None, input_dim], name='state_input')
             actions_input = tf.placeholder("float", [None, action_dim], name='action_input')
             is_training = tf.placeholder(tf.bool, name='bn_is_training')
             layers = settings["layers"]
+            ls = settings["layers_settings"]
 
             #action input layer
             action_layer_units = layers[self.actions_layer_number-1]
@@ -52,9 +57,9 @@ class CriticNetwork(Network):
                                                param_name='action', use_bias=False, activate=False)
 
             #state input layer
-            layer = self.create_dense_layer(state_input, l_scope="h_layer_1", shape=[input_dim, layers[0]],
+            layer = self.create_layer(state_input, l_scope="h_layer_1", shape=[input_dim, layers[0]],
                                        is_training=is_training, parameters=parameters, f=input_dim,
-                                            param_name='1', activate=False)
+                                            param_name='1', activate=False, layer_settings=ls[0])
             if self.actions_layer_number == 1:
                 layer = tf.add(layer, actions_layer, name="s_a_sum_1")
             layer = tf.nn.relu(layer, name='activation_input')
@@ -69,8 +74,9 @@ class CriticNetwork(Network):
                 num = str(i + 1)
                 l_name = "h_layer_"+num
 
-                layer = self.create_dense_layer(layer, l_scope="h_layer_" + num, shape=[layers[i-1], layers[i]],
-                                           is_training=is_training, parameters=parameters, f=f, param_name=num, activate=False)
+                layer = self.create_layer(layer, l_scope="h_layer_" + num, shape=[layers[i-1], layers[i]],
+                                           is_training=is_training, parameters=parameters, f=f, param_name=num,
+                                          activate=False, layer_settings=ls[i])
                 if i == (self.actions_layer_number-1):
                     layer = tf.add(layer, actions_layer, name="s_a_sum_"+l_name)
                 layer = tf.nn.relu(layer, name="act_"+l_name)

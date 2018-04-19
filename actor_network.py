@@ -11,12 +11,13 @@ class ActorNetwork(Network):
         Uses tf.variables in a function, also variables in the target network are EMA of original net
     """
 
-    def __init__(self, sess, state_dim, action_dim, env_name, actor_settings, save_folder):
+    def __init__(self, sess, state_dim, action_dim, env_name, actor_settings, save_folder, observations="states"):
         print('Running new actor')
         Network.__init__(self, sess, state_dim, action_dim, "actor", actor_settings, save_folder)
         self.DECAY = transfer_parameter(actor_settings, "decay", not_found=1.0)
         self.DECAY_SCHEME = transfer_parameter(actor_settings, "decay_scheme", "not_set")
         self.BATCH_SIZE = transfer_parameter(actor_settings, "batch", BATCH_SIZE)
+        self.OBSERVATIONS = observations
 
         # create actor network
         self.input, self.output, self.is_training \

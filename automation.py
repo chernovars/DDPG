@@ -102,7 +102,8 @@ def task(_task, save_folder, demo=False, demo_type=None, save_nets=True):
             exit(1)
     else:
         noise = transfer_parameter(_task[0].attrib, "noise", not_found=True)
-        rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=True, NOISE=noise)
+        render_step = transfer_parameter(_task[0].attrib, "render", not_found=False)
+        rl_world = main.World(RENDER_STEP=render_step, RENDER_delay=0, TRAIN=True, NOISE=noise)
         if noise:
             noise_switching_period = transfer_parameter(_task[0].attrib, "noise_switch", not_found=False)
             if noise_switching_period is not False:
@@ -113,6 +114,7 @@ def task(_task, save_folder, demo=False, demo_type=None, save_nets=True):
         os.makedirs(save_folder + "/saved_critic_networks", exist_ok=True)
 
         rl_world.ENV_NAME = _task[0].attrib["name"]
+        rl_world.OBSERVATIONS = transfer_parameter(_task[0].attrib, "observations", not_found="state")
         rl_world.TEST = 10
         rl_world.TEST_ON_EPISODE = 100
         rl_world.SAVE = save_nets
@@ -124,12 +126,17 @@ def task(_task, save_folder, demo=False, demo_type=None, save_nets=True):
         rl_world.ACTOR_SETTINGS = fill_default_paramers_for_net(strdict_to_numdict(el_actor.attrib))
         rl_world.CRITIC_SETTINGS = fill_default_paramers_for_net(strdict_to_numdict(el_critic.attrib))
 
+        #This block is an example of bad code, i know. I put info from layers xml blocks as another attribute in network settings.
         rl_world.ACTOR_SETTINGS["layers"] = []
+        rl_world.ACTOR_SETTINGS["layers_settings"] = []
         for child in el_actor:
             rl_world.ACTOR_SETTINGS["layers"].append(int(child.text))
+            rl_world.ACTOR_SETTINGS["layers_settings"].append(strdict_to_numdict(child.attrib))
         rl_world.CRITIC_SETTINGS["layers"] = []
+        rl_world.CRITIC_SETTINGS["layers_settings"] = []
         for child in el_critic:
             rl_world.CRITIC_SETTINGS["layers"].append(int(child.text))
+            rl_world.CRITIC_SETTINGS["layers_settings"].append(strdict_to_numdict(child.attrib))
 
         end_criteria = el_end_criteria.attrib["criteria"]
         if end_criteria == "episodes":

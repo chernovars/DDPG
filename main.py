@@ -7,6 +7,8 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+from cv2 import resize, INTER_CUBIC
 import os, errno
 import csv
 
@@ -116,9 +118,12 @@ class World:
         self.UNTIL_SOLVED = False
         self.AVG_REWARD = 0
         self.OVER_LAST = 0
+        self.OBSERVATIONS = "state"
+        self.ACTION_REPEATS = 3
 
         self.ACTOR_SETTINGS = []
         self.CRITIC_SETTINGS = []
+
 
     def main(self, save_folder, data_save=True):
         # myplot = plot.Plot() # TODO: real-time plotting for state analysys
@@ -128,8 +133,9 @@ class World:
             start_time = time.time()
 
         env_real = filter_env.makeFilteredEnv(gym.make(self.ENV_NAME))
+
         agent = DDPG(env_real, self.TRAIN, self.NOISE, self.ENV_NAME, self.ACTOR_SETTINGS, self.CRITIC_SETTINGS,
-                     save_folder)
+                 save_folder, observations=self.OBSERVATIONS)
 
         if self.RECORD_VIDEO:
             monitor = gym.wrappers.Monitor(env_real, save_folder,
@@ -140,9 +146,17 @@ class World:
         data_collector = DataCollector(save_folder, self.ENV_NAME)
 
         episode = None
+
         try:
             for episode in range(self.EPISODES):
                 state = env.reset()
+                if self.OBSERVATIONS == "pixels":
+                    #pic_batch = np.zeros(shape=env.render('rgb_array').shape[:-1])
+                    self.pic_batch = np.zeros((64,64,3))
+                    pic = resize(np.mean(env.render('rgb_array'), -1), dsize=(64, 64), interpolation=INTER_CUBIC)
+                    for i in range(self.ACTION_REPEATS):
+                        self.pic_batch[:,:,i] = pic
+                    state = self.pic_batch
                 print("episode:", episode)
                 steps = 0
                 episode_reward = 0
@@ -152,15 +166,20 @@ class World:
                         self.slow_render(env)
                         if self.RENDER_delay > 0:
                             time.sleep(self.RENDER_delay)
-                    steps += 1
-                    if self.NOISE:
-                        action = agent.noise_action(state)
+
+                    if self.OBSERVATIONS == "pixels":
+                        action, next_state, reward, done = self.get_next_pixel_state(agent, env)
                     else:
-                        action = agent.action(state)
-                    next_state, reward, done, _ = env.step(action)
+                        if self.NOISE:
+                            action = agent.noise_action(state)
+                        else:
+                            action = agent.action(state)
+                        next_state, reward, done, _ = env.step(action)
+
                     episode_reward += reward
                     agent.perceive(state, action, reward, next_state, done)
                     state = next_state
+                    steps += 1
                     if done:
                         data_collector._collect_data(steps, episode_reward)
                         break
@@ -244,8 +263,11 @@ class World:
         for i in range(self.TEST):
             state = env.reset()
             for j in range(env.spec.timestep_limit):
-                action = agent.action(state, is_testing=True)  # direct action for test
-                state, reward, done, _ = env.step(action)
+                if self.OBSERVATIONS == "pixels":
+                    _, state, reward, done  = self.get_next_pixel_state(agent, env, noise=False)
+                else:
+                    action = agent.action(state, is_testing=True)  # direct action for test
+                    _, reward, done, _ = env.step(action)
                 total_reward += reward
                 if done:
                     break
@@ -268,6 +290,20 @@ class World:
             if ave_reward > self.AVG_REWARD:
                 return True
         return False
+
+    def get_next_pixel_state(self, agent, env, noise=None):
+        if noise is None:
+            noise = self.NOISE
+        if noise:
+            action = agent.noise_action(self.pic_batch)
+        else:
+            action = agent.action(self.pic_batch)
+        for i in range(self.ACTION_REPEATS):
+            _, reward, done, _ = env.step(action)
+            self.pic_batch[:, :, i] = resize(np.mean(env.render('rgb_array'), -1), dsize=(64, 64), interpolation=INTER_CUBIC)
+        return action, self.pic_batch, reward, done
+
+
 
 
 '''if __name__ == '__main__':
