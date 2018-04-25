@@ -37,7 +37,7 @@ class DDPG:
         # with both their target networks
 
         if observations == "pixels":
-            self.state_dim = (64,64,3)
+            self.state_dim = (64,64,2)
         else:
             self.state_dim = env.observation_space.shape[0]
         self.action_dim = env.action_space.shape[0] #6

@@ -1,9 +1,13 @@
 import argparse
 import os
+
+import xml.etree.ElementTree as ET
+
 import automation
 import main
 import numpy as np
 import utils
+import matplotlib.pyplot as plt
 
 def processPicture(full_path, scenario):
     files = utils.get_files_starting_with(full_path, "Task")
@@ -12,19 +16,19 @@ def processPicture(full_path, scenario):
         dc = main.DataCollector("","")
         temp_path = full_path + "/" + f
         print(temp_path)
-        test = dc.load_test_list(temp_path + "_test")
+        #test = dc.load_test_list(temp_path + "_test")
 
         test_points_x_start = 0
 
         info = dc.load_rewards_list(temp_path)
         last_points_to_show = len(info)
-        test_points = len(test[0])
+        #test_points = len(test[0])
 
-        test[0] = np.array(test[0])[-test_points:]
+        '''test[0] = np.array(test[0])[-test_points:]
         test[1] = np.array(test[1])[-test_points:]
         test_filtered = list(filter(lambda x: x[0] >= test_points_x_start, zip(test[0], test[1])))
         test_filtered = [np.array(t) for t in zip(*test_filtered)]
-
+'''
         ema = dc.listToEMA(info)[-last_points_to_show:]
         info = info[-last_points_to_show:]
 
@@ -36,10 +40,64 @@ def processPicture(full_path, scenario):
         legend = ["Reward on noise", "EMA"]
 
         POI = [[len(ema)-1], [ema[-1]], [int(ema[-1])]]
-        utils.generatePlot(info, ema, x_start=test_points_x_start, scatter=test_filtered, title=title, labels=labels, legend=legend, save_folder=temp_path + ".png", POI=POI)
+        #utils.generatePlot(info, ema, x_start=test_points_x_start, scatter=test_filtered, title=title, labels=labels, legend=legend, save_folder=temp_path + ".png", POI=POI)
+        utils.generatePlot(info, ema, x_start=test_points_x_start, title=title, labels=labels, legend=legend, save_folder=temp_path + ".png", POI=POI)
 
-def generateReport():
-    print("Report Generated")
+def get_decay_list(tasks):
+    res = []
+    for i, t in enumerate(tasks):
+        executions_num = utils.transfer_parameter(t[0][0].attrib, "decay", False)
+        res.append(str(executions_num))
+    return res
+
+def generateReport(full_path):
+    env_name = "Walker2d-v1" # TODO: replace with input variable
+
+    scenario = os.path.join(full_path, utils.get_files_starting_with(full_path, "scenario")[0])
+    tree = ET.parse(scenario)
+    decay_list = get_decay_list(tree.getroot())
+    task_names = automation.__get_tasks_names(tree.getroot(), lists_in_list=True)
+    task_names = [["Task" + ordinal + env_name for ordinal in list] for list in task_names]
+
+    ema_list_of_tasks = []
+    with open(os.path.join(full_path, 'report.csv'), 'w') as f:
+        for decay, task in zip(decay_list, task_names):
+            line_to_write=decay + ","
+            ema_task = []
+            for rep in task:
+
+                dc = main.DataCollector("", "")
+                temp_path = full_path + "/" + rep
+                info = dc.load_rewards_list(temp_path)
+                ema = dc.listToEMA(info)[-1]
+                ema_task.append(ema)
+                line_to_write += (str(round(ema)) + ",")
+            ema_list_of_tasks.append(ema_task)
+            f.write(line_to_write + "\n")
+
+    title = os.path.basename(os.path.normpath(full_path))
+    boxplot(ema_list_of_tasks, title, labels=decay_list, save_path=full_path)
+
+def boxplot(rows, title, save_path=None, labels=None):
+    plt.figure()
+    bp_dict = plt.boxplot(rows, labels=labels, showmeans=True)
+    plt.xticks(rotation=-90)
+    xoff = 0
+    yoff = 100
+
+    for line in bp_dict['means']:
+        x, y = line.get_xydata()[0]
+        plt.text(x + xoff, y + yoff, '%3.f' % y,
+                 horizontalalignment='center',  # centered
+                 verticalalignment='top')
+
+    plt.title(title)
+    print(bp_dict["means"])
+    print(bp_dict.keys())
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(os.path.join(save_path, title.replace(" ", "_") + ".png"), dpi=300)
+    plt.show()
 
 
 
@@ -81,7 +139,8 @@ if __name__ == '__main__':
     elif args.picture:
         processPicture(temp_path, scenario)
     elif args.report:
-        automation.demo(temp_path, type="video")
-        automation.demo(temp_path, type="test")
-        processPicture(temp_path, scenario)
+        generateReport(temp_path)
+        #automation.demo(temp_path, type="video")
+        #automation.demo(temp_path, type="test")
+        #processPicture(temp_path, scenario)
 
