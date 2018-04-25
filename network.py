@@ -111,6 +111,11 @@ class Network:
 
     def create_layer(self, input, l_scope, shape, f, layer_settings, is_training=True, parameters=None, param_name="",
                      use_bias=True, activate=True):
+        try:
+            layer_settings["type"]
+        except KeyError:
+            layer_settings["type"] = 'fc'
+
         if layer_settings["type"] == "fc":
             input_shape = input.get_shape().as_list()
             if len(input_shape) == 4:

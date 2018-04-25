@@ -17,15 +17,25 @@ gc.enable()
 SCENARIOS_FOLDER = "./scenarios/"
 EXPERIMENTS_FOLDER = "./experiments/"
 
-def __get_tasks_names(tasks):
+def __get_tasks_names(tasks, lists_in_list=False):
     res = []
+
     for i, t in enumerate(tasks):
         executions_num = transfer_parameter(t.attrib, "executions", 1)
         if executions_num > 1:
-            for j in range(executions_num):
-                res.append(str(i+1) + "_" + str(j+1))
+            if lists_in_list:
+                rep_list = []
+                for j in range(executions_num):
+                    rep_list.append(str(i + 1) + "_" + str(j + 1))
+                res.append(rep_list)
+            else:
+                for j in range(executions_num):
+                    res.append(str(i+1) + "_" + str(j+1))
         else:
-            res.append(str(i+1))
+            if lists_in_list:
+                res.append([str(i + 1)])
+            else:
+                res.append(str(i + 1))
     return res
 
 def scenario(scenario, old_scenario_folder="", copy_task=None, plot=False):
@@ -64,7 +74,7 @@ def scenario(scenario, old_scenario_folder="", copy_task=None, plot=False):
                 os.makedirs(t_folder, exist_ok=True)
                 shutil.copy(scenario, save_folder)
                 start_time = time.time()
-                task(t, t_folder, save_nets=save_nets)
+                task(t, t_folder, save_when_training=save_nets)
                 time_took = (time.time() - start_time) / 60
                 with open(save_folder + '/status.txt', 'a') as the_file:
                     the_file.write(str(i)+ " " + str(time_took) + ' m\n')
@@ -81,17 +91,22 @@ def demo(old_scenario_folder, type=""):
     scenario = max(filter(lambda k: k.startswith(start), lst)) # Find scenario file to get the settings
 
     tree = ET.parse(os.path.join(SCENARIOS_FOLDER, scenario))
-    root = tree.getroot()
-    i = 0
-    for t in root:
-        i = i+1
-        t_folder = old_scenario_folder + "/Task" + str(i)
-        if type == "video":
-            os.makedirs(old_scenario_folder + "/Videos", exist_ok=True)
+    tasks = tree.getroot()
 
-        task(t, t_folder, demo=True, demo_type=type)
+    counter = 0
+    tasks_names = __get_tasks_names(tasks)
+    for i, t in enumerate(tasks):
+        executions = transfer_parameter(t.attrib, "executions", 1)
+        for rep in range(executions):
+            ordinal = tasks_names[counter]
+            counter += 1
+            t_folder = old_scenario_folder + "/Task" + ordinal
+            if type == "video":
+                os.makedirs(old_scenario_folder + "/Videos", exist_ok=True)
+            task(t, t_folder, demo=True, demo_type=type)
 
-def task(_task, save_folder, demo=False, demo_type=None, save_nets=True):
+
+def task(_task, save_folder, demo=False, demo_type=None, save_when_training=True):
     if demo:
         if demo_type == "video":
             rl_world = main.World(RENDER_STEP=True, RENDER_delay=0.0002, TRAIN=False, NOISE=False)
@@ -117,7 +132,7 @@ def task(_task, save_folder, demo=False, demo_type=None, save_nets=True):
         rl_world.OBSERVATIONS = transfer_parameter(_task[0].attrib, "observations", not_found="state")
         rl_world.TEST = 10
         rl_world.TEST_ON_EPISODE = 100
-        rl_world.SAVE = save_nets
+        rl_world.SAVE = save_when_training
         el_actor = _task[0][0]
         el_critic = _task[0][1]
         el_end_criteria = _task[0][2]
@@ -164,7 +179,7 @@ def task(_task, save_folder, demo=False, demo_type=None, save_nets=True):
                 print("Wrong demo type. Exiting...")
                 exit(1)
         try:
-            rl_world.main(save_folder, data_save=(not demo))
+            rl_world.main(save_folder, change_saved=(not demo))
         except Exception as e:
             print(e)
             traceback.print_exc()

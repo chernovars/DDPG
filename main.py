@@ -1,11 +1,12 @@
 import filter_env
 from ddpg import DDPG
-
+import roboschool
 import gym
 import time
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+from OpenGL import GLU
 
 
 from cv2 import resize, INTER_CUBIC
@@ -119,15 +120,15 @@ class World:
         self.AVG_REWARD = 0
         self.OVER_LAST = 0
         self.OBSERVATIONS = "state"
-        self.ACTION_REPEATS = 3
+        self.ACTION_REPEATS = 2
 
         self.ACTOR_SETTINGS = []
         self.CRITIC_SETTINGS = []
 
 
-    def main(self, save_folder, data_save=True):
+    def main(self, save_folder, change_saved=True):
         # myplot = plot.Plot() # TODO: real-time plotting for state analysys
-
+        observation = []
         start_time = 0
         if self.TIME_LIMIT > 0:
             start_time = time.time()
@@ -152,7 +153,7 @@ class World:
                 state = env.reset()
                 if self.OBSERVATIONS == "pixels":
                     #pic_batch = np.zeros(shape=env.render('rgb_array').shape[:-1])
-                    self.pic_batch = np.zeros((64,64,3))
+                    self.pic_batch = np.zeros((64,64,2))
                     pic = resize(np.mean(env.render('rgb_array'), -1), dsize=(64, 64), interpolation=INTER_CUBIC)
                     for i in range(self.ACTION_REPEATS):
                         self.pic_batch[:,:,i] = pic
@@ -175,6 +176,12 @@ class World:
                         else:
                             action = agent.action(state)
                         next_state, reward, done, _ = env.step(action)
+                        #observation.append(next_state[1])
+                        #x = list(range(len(observation)))
+                        #plt.plot(x, observation)
+                        #plt.show(block=False)
+
+
 
                     episode_reward += reward
                     agent.perceive(state, action, reward, next_state, done)
@@ -188,23 +195,23 @@ class World:
                     if agent.TRAIN:
                         # agent.save(episode, save_folder)
                         if self._testing(env, agent, episode, data_collector, self.ENV_NAME):
-                            self.finish(agent, env, episode, save_folder, data_collector, data_save)
+                            self.finish(agent, env, episode, save_folder, data_collector, change_saved)
                             return
 
                 if (episode % self.NOISE_PERIOD) == 0 and episode > 0:
                     self.NOISE = not self.NOISE
 
                 if self.TIME_LIMIT > 0 and (time.time() - start_time) > self.TIME_LIMIT:
-                    self.finish(agent, env, episode, save_folder, data_collector, data_save)
+                    self.finish(agent, env, episode, save_folder, data_collector, change_saved)
                     return
-            self.finish(agent, env, self.EPISODES, save_folder, data_collector, data_save)
+            self.finish(agent, env, self.EPISODES, save_folder, data_collector, change_saved)
             return
         except KeyboardInterrupt:
-            self.finish(agent, env, episode, save_folder, data_collector, data_save)
+            self.finish(agent, env, episode, save_folder, data_collector, change_saved)
             return
 
-    def finish(self, agent, env, episode, save_folder, data_collector, data_save=True):
-        if data_save:
+    def finish(self, agent, env, episode, save_folder, data_collector, change_saved=True):
+        if change_saved:
             if self.SAVE:
                 agent.save(episode, save_folder)
             else:
