@@ -7,6 +7,7 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from OpenGL import GLU
+from math import isnan
 
 
 from cv2 import resize, INTER_CUBIC
@@ -93,8 +94,13 @@ class DataCollector:
         EMA = []
         EMA.append(orig[0] * (1 - tau))
         for i in range(1, len(orig)):
+            if isnan(orig[i]):
+                print("nan on ", i)
+                return None
             EMA.append(EMA[i - 1] * tau + orig[i] * (1 - tau))
 
+        test =EMA[-50:]
+        test2 = orig[-50:]
         return EMA
 
 
@@ -104,7 +110,10 @@ class World:
         self.ENV_NAME = 'InvertedDoublePendulum-v1'
         self.EPISODES = 100000000  # 100000
         self.TIME_LIMIT = 0
-        self.TEST = 10
+        self.TEST_NUM = 10
+        self.TEST = False
+        self.TEST_SAVE = False
+
         self.RENDER_STEP = RENDER_STEP
         self.RENDER_TEST_EPISODE = False
         self.RENDER_delay = RENDER_delay  # 0.1
@@ -191,8 +200,7 @@ class World:
                         data_collector._collect_data(steps, episode_reward)
                         break
                 # Testing:
-                if (episode % self.TEST_ON_EPISODE) == 0 and episode > 1:
-                    if agent.TRAIN:
+                if self.TEST and (episode % self.TEST_ON_EPISODE) == 0 and episode > 0:
                         # agent.save(episode, save_folder)
                         if self._testing(env, agent, episode, data_collector, self.ENV_NAME):
                             self.finish(agent, env, episode, save_folder, data_collector, change_saved)
@@ -261,13 +269,24 @@ class World:
         plt.show(block=False)
 
     def _testing(self, env, agent, episode, data_collector, env_name):
+        save_dir, save_file = os.path.split(data_collector.save_folder)
+
+        def check_append(text):
+            if self.TEST_SAVE:
+                with open(save_dir + "/TEST.txt", "a") as myfile:
+                    myfile.write(text)
+
         x = np.arange(1, episode + 2, 1)
         if self.SHOW_PLOT:
             self._plotting(x, data_collector, env_name)
         if self.RENDER_TEST_EPISODE:
             self.renderEpisode(env, agent)
         total_reward = 0
-        for i in range(self.TEST):
+
+
+        check_append(save_file + "  ")
+        for i in range(self.TEST_NUM):
+            ep_reward = 0
             state = env.reset()
             for j in range(env.spec.timestep_limit):
                 if self.OBSERVATIONS == "pixels":
@@ -275,10 +294,15 @@ class World:
                 else:
                     action = agent.action(state, is_testing=True)  # direct action for test
                     _, reward, done, _ = env.step(action)
-                total_reward += reward
+                ep_reward += reward
                 if done:
+                    check_append(str(ep_reward) + " ")
+                    total_reward += ep_reward
                     break
-        ave_reward = total_reward / self.TEST
+        check_append("\n")
+
+
+        ave_reward = total_reward / self.TEST_NUM
         data_collector.test_list_x.append(episode + data_collector.start_test_x)
         data_collector.test_list_y.append(ave_reward)
         print('episode: ', episode, 'Evaluation Average Reward:', ave_reward)

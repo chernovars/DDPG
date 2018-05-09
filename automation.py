@@ -88,7 +88,7 @@ def demo(old_scenario_folder, type=""):
 
     lst = os.listdir(old_scenario_folder)
     start = "scenario"
-    scenario = max(filter(lambda k: k.startswith(start), lst)) # Find scenario file to get the settings
+    scenario = max(filter(lambda k: k.startswith(start) and not k.endswith("png"), lst)) # Find scenario file to get the settings
 
     tree = ET.parse(os.path.join(SCENARIOS_FOLDER, scenario))
     tasks = tree.getroot()
@@ -112,6 +112,7 @@ def task(_task, save_folder, demo=False, demo_type=None, save_when_training=True
             rl_world = main.World(RENDER_STEP=True, RENDER_delay=0.0002, TRAIN=False, NOISE=False)
         elif demo_type == "test":
             rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=False, NOISE=False)
+
         else:
             print("Demo type undefined")
             exit(1)
@@ -130,8 +131,10 @@ def task(_task, save_folder, demo=False, demo_type=None, save_when_training=True
 
         rl_world.ENV_NAME = _task[0].attrib["name"]
         rl_world.OBSERVATIONS = transfer_parameter(_task[0].attrib, "observations", not_found="state")
-        rl_world.TEST = 10
+        rl_world.TEST_NUM = 10
         rl_world.TEST_ON_EPISODE = 100
+
+
         rl_world.SAVE = save_when_training
         el_actor = _task[0][0]
         el_critic = _task[0][1]
@@ -171,10 +174,12 @@ def task(_task, save_folder, demo=False, demo_type=None, save_when_training=True
                 rl_world.UNTIL_SOLVED = False
                 rl_world.TEST_ON_EPISODE = 10 #so that we never test (because we have only 3 episodes)
             elif demo_type == "test":
-                rl_world.EPISODES = 1
+                rl_world.EPISODES = 2
                 rl_world.UNTIL_SOLVED = False
                 rl_world.TEST_ON_EPISODE = 1
-                rl_world.TEST = 100
+                rl_world.TEST_NUM = 8
+                rl_world.TEST = True
+                rl_world.TEST_SAVE = True
             else:
                 print("Wrong demo type. Exiting...")
                 exit(1)
