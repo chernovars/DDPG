@@ -32,11 +32,15 @@ def get_folders_starting_with(src, beginning_of_name):
     return res
 
 
-def get_files_starting_with(src, beginning_of_name):
+def get_files_starting_with(src, beginning_of_name, ends_with=None):
     res = []
     for f in os.listdir(src + "/"):
         if f.startswith(beginning_of_name) and os.path.isfile(src + "/" + f):
-            res.append(f)
+            if ends_with:
+                if f.endswith(ends_with):
+                    res.append(f)
+            else:
+                res.append(f)
     return res
 
 def converter(i):
