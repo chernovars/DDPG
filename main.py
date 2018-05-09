@@ -273,7 +273,7 @@ class World:
 
         def check_append(text):
             if self.TEST_SAVE:
-                with open(save_dir + "/TEST.txt", "a") as myfile:
+                with open(save_dir + "/TEST.csv", "a") as myfile:
                     myfile.write(text)
 
         x = np.arange(1, episode + 2, 1)
@@ -293,7 +293,7 @@ class World:
                     _, state, reward, done  = self.get_next_pixel_state(agent, env, noise=False)
                 else:
                     action = agent.action(state, is_testing=True)  # direct action for test
-                    _, reward, done, _ = env.step(action)
+                    state, reward, done, _ = env.step(action)
                 ep_reward += reward
                 if done:
                     check_append(str(ep_reward) + " ")
