@@ -33,7 +33,9 @@ def main(_host, _port, _login, _password, server_folder):
 
         if args.download:
             list_of_folders_serv = _get_list_of_folders_serv(ssh_wrap, os.path.join(server_folder, EXPERIMENTS_FOLDER))
-            if args.stats:
+            if args.experiment:
+                download_experiments(ssh_wrap, _host, str(_port), _login, server_folder, experiments=[args.experiment])
+            elif args.stats:
                 exp_full_path = os.path.join(server_folder, EXPERIMENTS_FOLDER, args.experiment)
                 stats_names = ssh_wrap.exec("ls -p " + exp_full_path + " | grep -v /").split("\n")
                 download_stats(_host, str(_port), _login, server_folder, args.experiment, stats_names)
