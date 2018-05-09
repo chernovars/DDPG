@@ -45,14 +45,14 @@ def create_decay_scheme(decay, parameters, scheme="scalar"):
         if scheme == "input":
             param = parameters[0]
             decay_matrix = np.ones(param.get_shape().as_list())
-            decay_matrix[decay[1], :] *= decay[0]
-            decay_matrix[decay[2], :] *= decay[0]
+            for d in range(len(decay)-1):
+                decay_matrix[decay[d+1]-1, :] *= decay[0]
             return [param.assign(param * decay_matrix)]
         if scheme == "output":
             param = parameters[-1]
             decay_matrix = np.ones(param.get_shape().as_list())
-            decay_matrix[decay[1], :] *= decay[0]
-            decay_matrix[decay[2], :] *= decay[0]
+            for d in range(len(decay)-1):
+                decay_matrix[decay[d+1]-1, :] *= decay[0]
             return [param.assign(param * decay_matrix)]
         if scheme == "gradient":
             assert len(decay) == len(parameters)
