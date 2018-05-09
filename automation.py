@@ -103,7 +103,10 @@ def demo(old_scenario_folder, type=""):
             t_folder = old_scenario_folder + "/Task" + ordinal
             if type == "video":
                 os.makedirs(old_scenario_folder + "/Videos", exist_ok=True)
-            task(t, t_folder, demo=True, demo_type=type)
+            if os.path.isdir(t_folder):
+                task(t, t_folder, demo=True, demo_type=type)
+            else:
+                print("{0} not exists".format(t_folder))
 
 
 def task(_task, save_folder, demo=False, demo_type=None, save_when_training=True):
@@ -185,6 +188,9 @@ def task(_task, save_folder, demo=False, demo_type=None, save_when_training=True
                 exit(1)
         try:
             rl_world.main(save_folder, change_saved=(not demo))
+        except EnvironmentError:
+            print("\n\n MUJOCO UNSTABLE, exitting task \n\n")
+            rl_world.finish(change_saved=False)
         except Exception as e:
             print(e)
             traceback.print_exc()

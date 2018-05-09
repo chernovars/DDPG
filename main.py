@@ -96,7 +96,7 @@ class DataCollector:
         for i in range(1, len(orig)):
             if isnan(orig[i]):
                 print("nan on ", i)
-                return None
+                raise EnvironmentError("Mujoco unstable")
             EMA.append(EMA[i - 1] * tau + orig[i] * (1 - tau))
 
         test =EMA[-50:]
@@ -146,6 +146,7 @@ class World:
 
         agent = DDPG(env_real, self.TRAIN, self.NOISE, self.ENV_NAME, self.ACTOR_SETTINGS, self.CRITIC_SETTINGS,
                  save_folder, observations=self.OBSERVATIONS)
+        self.agent = agent
 
         if self.RECORD_VIDEO:
             monitor = gym.wrappers.Monitor(env_real, save_folder,
@@ -218,7 +219,9 @@ class World:
             self.finish(agent, env, episode, save_folder, data_collector, change_saved)
             return
 
-    def finish(self, agent, env, episode, save_folder, data_collector, change_saved=True):
+    def finish(self, agent=None, env=None, episode=None, save_folder=None, data_collector=None, change_saved=True):
+        if not agent:
+            agent = self.agent
         if change_saved:
             if self.SAVE:
                 agent.save(episode, save_folder)
