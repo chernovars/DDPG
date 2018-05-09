@@ -180,7 +180,7 @@ def task(_task, save_folder, demo=False, demo_type=None, save_when_training=True
                 rl_world.EPISODES = 2
                 rl_world.UNTIL_SOLVED = False
                 rl_world.TEST_ON_EPISODE = 1
-                rl_world.TEST_NUM = 8
+                rl_world.TEST_NUM = 24
                 rl_world.TEST = True
                 rl_world.TEST_SAVE = True
             else:

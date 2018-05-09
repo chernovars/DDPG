@@ -1,12 +1,12 @@
 import filter_env
 from ddpg import DDPG
-import roboschool
+#import roboschool
 import gym
 import time
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
-from OpenGL import GLU
+#from OpenGL import GLU
 from math import isnan
 
 
