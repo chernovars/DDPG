@@ -80,8 +80,10 @@ def scenario(scenario, old_scenario_folder="", copy_task=None, plot=False):
                     the_file.write(str(i)+ " " + str(time_took) + ' m\n')
         if plot:
             report.processPicture(save_folder, scenario + "_" + cur_time)
+        cur_time = ' Task finished on {0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
+        print(cur_time)
         with open(save_folder + '/status.txt', 'a') as the_file:
-            the_file.write('Finished\n')
+            the_file.write(cur_time + '\n')
 
 def demo(old_scenario_folder, type=""):
     assert old_scenario_folder is not ""
