@@ -1,9 +1,9 @@
 import argparse
 import os
-import automation
+import pycronos.agent.DDPG.automation
 import datetime
 import xml.etree.ElementTree as ET
-import main
+import pycronos.agent.DDPG.main
 import shutil
 import sys
 import time

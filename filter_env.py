@@ -1,15 +1,18 @@
 import numpy as np
-import gym
+
+
+# import gym
 
 def makeFilteredEnv(env):
   """ Create a new environment class with actions and states normalized to [-1,1] """
   #env = gym.make(ENV_NAME)
   action_space = env.action_space
   observation_space = env.observation_space
-  if not type(action_space) == gym.spaces.box.Box:
+  '''if not type(action_space) == gym.spaces.box.Box:
     raise RuntimeError('Environment with continous action space (i.e. Box) required.')
   if not type(observation_space) == gym.spaces.box.Box:
     raise RuntimeError('Environment with continous observation space (i.e. Box) required.')
+  '''
 
   env_type = type(env)
 

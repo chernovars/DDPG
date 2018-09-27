@@ -1,5 +1,5 @@
-import filter_env
-from ddpg import *
+# import pycronos.agent.DDPG.filter_env
+from pycronos.agent.DDPG.ddpg import *
 
 import time
 import datetime

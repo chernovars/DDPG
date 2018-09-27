@@ -3,10 +3,12 @@ import argparse
 import os
 import datetime
 import xml.etree.ElementTree as ET
-import main
+import pycronos.agent.DDPG.main
 import shutil
 import time
-gc.enable()
+
+
+# gc.enable()
 
 def scenario(_scenario, old_scenario_folder="", copy_task=None):
     cur_time = '{0:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now()) # before scenario becomes scenario.xml
@@ -35,8 +37,6 @@ def scenario(_scenario, old_scenario_folder="", copy_task=None):
             else:
                 copy_folder_and_duplicate(load_folder, save_folder, "Task" + str(copy_task), len(list(root)))
                 copy_file_and_duplicate(load_folder, save_folder, "Task" + str(copy_task), len(list(root)))
-
-
 
         for t in root:
             i = i+1
@@ -72,11 +72,11 @@ def demo(old_scenario_folder, type=""):
 def task(_task, save_folder, demo=False, demo_type=None):
     if demo:
         if demo_type == "video":
-            rl_world = main.World(RENDER_STEP=True, RENDER_delay=0.0002, TRAIN=False, NOISE=False)
+            rl_world = pycronos.agent.DDPG.main.World(RENDER_STEP=True, RENDER_delay=0.0002, TRAIN=False, NOISE=False)
         elif demo_type == "test":
-            rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=False, NOISE=False)
+            rl_world = pycronos.agent.DDPG.main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=False, NOISE=False)
     else:
-        rl_world = main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=True, NOISE=True)
+        rl_world = pycronos.agent.DDPG.main.World(RENDER_STEP=False, RENDER_delay=0, TRAIN=True, NOISE=True)
 
     if _task.attrib["type"] == "simulation":
         os.makedirs(save_folder + "/saved_actor_networks", exist_ok=True)

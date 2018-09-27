@@ -3,11 +3,10 @@
 # Author: Flood Sung, Arseniy Chernov
 # Date: 2017.11.29
 # -----------------------------------
-import gym
 import tensorflow as tf
 import numpy as np
-from ou_noise import OUNoise
-from replay_buffer import ReplayBuffer
+from pycronos.agent.DDPG.ou_noise import OUNoise
+from pycronos.agent.DDPG.replay_buffer import ReplayBuffer
 import time
 # Hyper Parameters:
 
@@ -38,14 +37,14 @@ class DDPG:
         self.sess = tf.InteractiveSession()
 
         if actor_settings["bn"] == 'True':
-            from actor_network_bn import ActorNetwork
+            from pycronos.agent.DDPG.actor_network_bn import ActorNetwork
         else:
-            from actor_network import ActorNetwork
+            from pycronos.agent.DDPG.actor_network import ActorNetwork
 
         if critic_settings["bn"] == 'True':
-            from critic_network_bn import CriticNetwork
+            from pycronos.agent.DDPG.critic_network_bn import CriticNetwork
         else:
-            from critic_network import CriticNetwork
+            from pycronos.agent.DDPG.critic_network import CriticNetwork
 
         self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, actor_settings, save_folder)
         self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim, self.env_name, critic_settings, save_folder)
